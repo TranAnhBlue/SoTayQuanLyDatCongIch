@@ -505,3 +505,234 @@ exports.updateViolation = async (req, res) => {
     }
 };
 
+// ==========================================
+//  LAND REQUEST MANAGEMENT
+// ==========================================
+
+// @desc    Get all land requests for admin review
+// @route   GET /api/admin/land-requests
+// @access  Private (Admin/Officer only)
+exports.getLandRequests = async (req, res) => {
+    try {
+        const {
+            page = 1,
+            limit = 10,
+            status,
+            search
+        } = req.query;
+
+        // Build filter
+        const filter = {};
+        if (status) filter.status = status;
+        if (search) {
+            filter.$or = [
+                { requestCode: { $regex: search, $options: 'i' } },
+                { requesterName: { $regex: search, $options: 'i' } },
+                { requesterIdCard: { $regex: search, $options: 'i' } }
+            ];
+        }
+
+        const LandRequest = require('../models/LandRequest');
+        const requests = await LandRequest.find(filter)
+            .populate('requesterId', 'name email phone')
+            .populate('reviewedBy', 'name position')
+            .populate('landParcelId')
+            .sort({ createdAt: -1 })
+            .limit(limit * 1)
+            .skip((page - 1) * limit);
+
+        const total = await LandRequest.countDocuments(filter);
+
+        // Statistics
+        const stats = {
+            total: await LandRequest.countDocuments(),
+            pending: await LandRequest.countDocuments({ status: 'Chờ xử lý' }),
+            reviewing: await LandRequest.countDocuments({ status: 'Đang xem xét' }),
+            approved: await LandRequest.countDocuments({ status: 'Đã phê duyệt' }),
+            rejected: await LandRequest.countDocuments({ status: 'Từ chối' })
+        };
+
+        res.status(200).json({
+            success: true,
+            data: requests,
+            pagination: {
+                current: parseInt(page),
+                total: Math.ceil(total / limit),
+                count: requests.length,
+                totalRecords: total
+            },
+            statistics: stats
+        });
+    } catch (error) {
+        console.error('[Admin getLandRequests]', error);
+        res.status(500).json({ message: 'Lỗi máy chủ', error: error.message });
+    }
+};
+
+// @desc    Get single land request for admin review
+// @route   GET /api/admin/land-requests/:id
+// @access  Private (Admin/Officer only)
+exports.getLandRequest = async (req, res) => {
+    try {
+        const { id } = req.params;
+        
+        const LandRequest = require('../models/LandRequest');
+        const request = await LandRequest.findById(id)
+            .populate('requesterId', 'name email phone address')
+            .populate('reviewedBy', 'name position')
+            .populate('landParcelId');
+
+        if (!request) {
+            return res.status(404).json({ message: 'Không tìm thấy đơn xin thuê đất' });
+        }
+
+        res.status(200).json({
+            success: true,
+            data: request
+        });
+    } catch (error) {
+        console.error('[Admin getLandRequest]', error);
+        res.status(500).json({ message: 'Lỗi máy chủ', error: error.message });
+    }
+};
+
+// @desc    Update land request status (approve/reject/request more info)
+// @route   PUT /api/admin/land-requests/:id/status
+// @access  Private (Admin/Officer only)
+exports.updateLandRequestStatus = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { status, notes, rejectionReason } = req.body;
+        
+        const validStatuses = ['Đang xem xét', 'Yêu cầu bổ sung', 'Đã phê duyệt', 'Từ chối'];
+        if (!validStatuses.includes(status)) {
+            return res.status(400).json({ message: 'Trạng thái không hợp lệ' });
+        }
+
+        const LandRequest = require('../models/LandRequest');
+        const request = await LandRequest.findById(id);
+        
+        if (!request) {
+            return res.status(404).json({ message: 'Không tìm thấy đơn xin thuê đất' });
+        }
+
+        // Update status
+        request.updateStatus(status, req.user.id, notes);
+        
+        if (status === 'Từ chối' && rejectionReason) {
+            request.rejectionReason = rejectionReason;
+        }
+
+        await request.save();
+        await request.populate(['requesterId', 'reviewedBy'], 'name email phone position');
+
+        // Create audit log
+        await AuditLog.create({
+            officer: req.user.name,
+            role: req.user.role,
+            action: `Cập nhật trạng thái đơn xin thuê đất`,
+            target: request.requestCode,
+            targetType: 'LandRequest',
+            status: status,
+            statusColor: getStatusColor(status),
+            timestamp: new Date()
+        });
+
+        res.status(200).json({
+            success: true,
+            message: `Cập nhật trạng thái thành công: ${status}`,
+            data: request
+        });
+    } catch (error) {
+        console.error('[Admin updateLandRequestStatus]', error);
+        res.status(500).json({ message: 'Lỗi máy chủ', error: error.message });
+    }
+};
+
+// @desc    Create contract from approved land request
+// @route   POST /api/admin/land-requests/:id/create-contract
+// @access  Private (Admin only)
+exports.createContractFromRequest = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { annualPrice, startDate, additionalTerms } = req.body;
+        
+        const LandRequest = require('../models/LandRequest');
+        const request = await LandRequest.findById(id)
+            .populate('requesterId');
+        
+        if (!request) {
+            return res.status(404).json({ message: 'Không tìm thấy đơn xin thuê đất' });
+        }
+
+        if (request.status !== 'Đã phê duyệt') {
+            return res.status(400).json({ message: 'Chỉ có thể tạo hợp đồng từ đơn đã được phê duyệt' });
+        }
+
+        if (request.contractId) {
+            return res.status(400).json({ message: 'Đơn này đã được tạo hợp đồng' });
+        }
+
+        // Create contract
+        const contractCode = `HD-${new Date().getFullYear()}-${Date.now().toString().slice(-6)}`;
+        
+        const contract = await Contract.create({
+            contractCode,
+            renterName: request.requesterName,
+            renterId: request.requesterId._id,
+            parcelAddress: request.requestedLocation,
+            area: request.requestedArea,
+            purpose: `${request.landUse} - ${request.landUseDetail}`,
+            status: 'CHỜ DUYỆT',
+            term: request.requestedDuration,
+            startDate: startDate || request.preferredStartDate,
+            endDate: new Date(new Date(startDate || request.preferredStartDate).setFullYear(
+                new Date(startDate || request.preferredStartDate).getFullYear() + request.requestedDuration
+            )),
+            annualPrice: annualPrice || 50000, // Default price per m2/year
+            currentDebt: (annualPrice || 50000) * request.requestedArea,
+            isHandedOver: false,
+            additionalTerms: additionalTerms || ''
+        });
+
+        // Update land request
+        request.contractId = contract._id;
+        request.status = 'Đã ký hợp đồng';
+        await request.save();
+
+        // Create audit log
+        await AuditLog.create({
+            officer: req.user.name,
+            role: req.user.role,
+            action: `Tạo hợp đồng từ đơn xin thuê đất`,
+            target: contract.contractCode,
+            targetType: 'Contract',
+            status: 'Thành công',
+            statusColor: 'success',
+            timestamp: new Date()
+        });
+
+        res.status(201).json({
+            success: true,
+            message: 'Tạo hợp đồng thành công',
+            contract,
+            request
+        });
+    } catch (error) {
+        console.error('[Admin createContractFromRequest]', error);
+        res.status(500).json({ message: 'Lỗi máy chủ', error: error.message });
+    }
+};
+
+// Helper function to get status color
+function getStatusColor(status) {
+    const colors = {
+        'Chờ xử lý': 'warning',
+        'Đang xem xét': 'processing',
+        'Yêu cầu bổ sung': 'orange',
+        'Đã phê duyệt': 'success',
+        'Từ chối': 'error',
+        'Đã ký hợp đồng': 'success'
+    };
+    return colors[status] || 'default';
+}

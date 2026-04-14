@@ -6,8 +6,7 @@ import {
   PushpinOutlined, 
   InboxOutlined, 
   ClockCircleOutlined,
-  CheckCircleOutlined,
-  CloseCircleOutlined
+  CheckCircleOutlined
 } from '@ant-design/icons';
 
 const { Title, Text, Paragraph } = Typography;
@@ -18,6 +17,7 @@ const Feedback = () => {
   const [feedbacks, setFeedbacks] = useState([]);
   const [formData, setFormData] = useState({ topic: 'tranh-chap', contractId: '', title: '', description: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [fileList, setFileList] = useState([]);
 
   // Fetch Feedbacks
   useEffect(() => {
@@ -54,11 +54,25 @@ const Feedback = () => {
          setFeedbacks(res.data.feedbacks);
       }
       setFormData({ topic: 'tranh-chap', contractId: '', title: '', description: '' });
+      setFileList([]); // Reset file list
     } catch (error) {
       message.error('Gửi phản hồi thất bại, vui lòng thử lại sau.');
       console.error(error);
     }
     setIsSubmitting(false);
+  };
+
+  // Xử lý upload file
+  const handleFileChange = ({ fileList: newFileList }) => {
+    setFileList(newFileList);
+  };
+
+  // Custom upload function
+  const customUpload = ({ file, onSuccess }) => {
+    // Giả lập upload thành công
+    setTimeout(() => {
+      onSuccess("ok");
+    }, 0);
   };
 
   const dummyFeedbacks = feedbacks.length > 0 ? feedbacks.slice(0,3).map(f => ({
@@ -106,7 +120,9 @@ const Feedback = () => {
 
             <Row gutter={16} style={{ marginBottom: '20px' }}>
               <Col span={12}>
-                <div style={{ marginBottom: '8px', fontWeight: 500 }}>Loại phản hồi</div>
+                <div style={{ marginBottom: '8px', fontWeight: 500 }}>
+                  Loại phản hồi <span style={{ color: '#ff4d4f' }}>*</span>
+                </div>
                 <Select value={formData.topic} onChange={v => setFormData({...formData, topic: v})} style={{ width: '100%' }} size="large">
                   <Select.Option value="tranh-chap">Tranh chấp ranh giới</Select.Option>
                   <Select.Option value="gia-thue">Kiến nghị giá thuê</Select.Option>
@@ -120,12 +136,16 @@ const Feedback = () => {
             </Row>
 
             <div style={{ marginBottom: '20px' }}>
-              <div style={{ marginBottom: '8px', fontWeight: 500 }}>Tiêu đề</div>
+              <div style={{ marginBottom: '8px', fontWeight: 500 }}>
+                Tiêu đề <span style={{ color: '#ff4d4f' }}>*</span>
+              </div>
               <Input value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} placeholder="Tóm tắt ngắn gọn vấn đề của bạn" size="large" />
             </div>
 
             <div style={{ marginBottom: '20px' }}>
-              <div style={{ marginBottom: '8px', fontWeight: 500 }}>Nội dung chi tiết</div>
+              <div style={{ marginBottom: '8px', fontWeight: 500 }}>
+                Nội dung chi tiết <span style={{ color: '#ff4d4f' }}>*</span>
+              </div>
               <TextArea value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} rows={5} placeholder="Mô tả chi tiết sự việc, thời gian và các bên liên quan..." size="large" />
             </div>
 
@@ -133,27 +153,34 @@ const Feedback = () => {
               <div style={{ marginBottom: '8px', fontWeight: 500 }}>Tải lên hình ảnh minh chứng</div>
               <Dragger 
                 name="file" 
-                multiple={true} 
+                multiple={true}
+                fileList={fileList}
+                onChange={handleFileChange}
+                customRequest={customUpload}
+                listType="picture"
+                accept="image/*,.pdf"
                 style={{ backgroundColor: '#f9fafa', borderColor: '#d9d9d9' }}
+                beforeUpload={(file) => {
+                  const isImage = file.type.startsWith('image/');
+                  const isPDF = file.type === 'application/pdf';
+                  if (!isImage && !isPDF) {
+                    message.error('Chỉ hỗ trợ file ảnh (JPG, PNG) và PDF!');
+                    return false;
+                  }
+                  const isLt10M = file.size / 1024 / 1024 < 10;
+                  if (!isLt10M) {
+                    message.error('Kích thước file phải nhỏ hơn 10MB!');
+                    return false;
+                  }
+                  return true;
+                }}
               >
                 <p className="ant-upload-drag-icon">
                   <InboxOutlined style={{ color: '#8c8c8c' }} />
                 </p>
                 <p className="ant-upload-text">Kéo thả hoặc <span style={{ color: '#1e7e34', fontWeight: 'bold' }}>chọn tệp</span> để tải lên</p>
-                <p className="ant-upload-hint">PNG, JPG tối đa 10MB</p>
+                <p className="ant-upload-hint">PNG, JPG, PDF tối đa 10MB</p>
               </Dragger>
-
-              {/* Mockup image previews */}
-              <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
-                <div style={{ width: '80px', height: '80px', borderRadius: '8px', overflow: 'hidden', position: 'relative', border: '1px solid #e8e8e8' }}>
-                  <img src="https://images.unsplash.com/photo-1500382017468-9049fed747ef?q=80&w=200&auto=format&fit=crop" style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="evidence 1" />
-                  <div style={{ position: 'absolute', top: '4px', right: '4px', background: 'white', borderRadius: '50%', color: '#ff4d4f', cursor: 'pointer' }}><CloseCircleOutlined /></div>
-                </div>
-                <div style={{ width: '80px', height: '80px', borderRadius: '8px', overflow: 'hidden', position: 'relative', border: '1px solid #e8e8e8', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f5f5f5' }}>
-                  <img src="https://upload.wikimedia.org/wikipedia/commons/8/87/PDF_file_icon.svg" style={{ width: '40px', height: '40px' }} alt="pdf" />
-                  <div style={{ position: 'absolute', top: '4px', right: '4px', background: 'white', borderRadius: '50%', color: '#ff4d4f', cursor: 'pointer' }}><CloseCircleOutlined /></div>
-                </div>
-              </div>
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '16px' }}>

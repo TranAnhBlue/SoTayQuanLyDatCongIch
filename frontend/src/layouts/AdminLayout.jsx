@@ -11,7 +11,11 @@ import {
   BellFilled,
   SettingFilled,
   BankFilled,
-  SearchOutlined
+  SearchOutlined,
+  EnvironmentOutlined,
+  FileTextOutlined,
+  HistoryOutlined,
+  FormOutlined
 } from '@ant-design/icons';
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -140,6 +144,11 @@ const AdminLayout = () => {
               items={[
                 { key: '/admin/dashboard', icon: <AppstoreOutlined />, label: 'Tổng quan' },
                 { type: 'divider', style: { margin: '8px 0', backgroundColor: 'transparent' } },
+                { key: '/admin/land-parcels', icon: <EnvironmentOutlined />, label: 'Quản lý thửa đất' },
+                { key: '/admin/legal-documents', icon: <FileTextOutlined />, label: 'Văn bản pháp lý' },
+                { key: '/admin/change-history', icon: <HistoryOutlined />, label: 'Lịch sử biến động' },
+                { type: 'divider', style: { margin: '8px 0', backgroundColor: 'transparent' } },
+                { key: '/admin/land-request-management', icon: <FormOutlined />, label: 'Đơn xin thuê đất' },
                 { key: '/admin/approvals', icon: <CheckSquareOutlined />, label: 'Phê duyệt hồ sơ' },
                 { type: 'divider', style: { margin: '8px 0', backgroundColor: 'transparent' } },
                 { key: '/admin/sop-logs', icon: <SafetyCertificateOutlined />, label: 'Kiểm soát SOP' },

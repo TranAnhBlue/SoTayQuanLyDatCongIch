@@ -1,299 +1,575 @@
 const Contract = require('../models/Contract');
 const Transaction = require('../models/Transaction');
 const Feedback = require('../models/Feedback');
+const LandRequest = require('../models/LandRequest');
+const User = require('../models/User');
+const PDFDocument = require('pdfkit');
 
-// ==========================================
-//  RENTER DASHBOARD
-//  GET /api/renter/dashboard
-//  Trả về: thông tin hợp đồng + 3 giao dịch gần nhất + tóm tắt nợ
-// ==========================================
-const getDashboard = async (req, res) => {
+// @desc    Get renter dashboard data
+// @route   GET /api/renter/dashboard
+// @access  Private (Renter only)
+exports.getDashboard = async (req, res) => {
     try {
-        const userId = req.user._id.toString();
-        // Tìm hợp đồng đang thuê của user
-        let contract = await Contract.findOne({ renterId: userId, status: 'ĐANG THUÊ' }).lean();
-        // Fallback: lấy bất kỳ hợp đồng đang thuê nếu renterId chưa khớp
-        if (!contract) contract = await Contract.findOne({ status: 'ĐANG THUÊ' }).lean();
-        if (!contract) return res.status(404).json({ message: 'Không tìm thấy hợp đồng đang hoạt động.' });
-
-        // Lấy 3 giao dịch mới nhất
-        const recentTransactions = await Transaction.find({ contractId: contract._id })
+        const userId = req.user.id;
+        
+        // Tìm hợp đồng hiện tại của user
+        const contract = await Contract.findOne({ 
+            renterId: userId,
+            status: 'ĐANG THUÊ'
+        });
+        
+        // Nếu có hợp đồng, cập nhật tên người thuê từ thông tin user hiện tại
+        if (contract) {
+            contract.renterName = req.user.name;
+        }
+        
+        let recentTransactions = [];
+        if (contract) {
+            // Lấy 5 giao dịch gần nhất
+            recentTransactions = await Transaction.find({ 
+                contractId: contract._id 
+            })
             .sort({ date: -1 })
-            .limit(3)
-            .lean();
-
-        // Tính tổng đã nộp & còn nợ
-        const allTransactions = await Transaction.find({ contractId: contract._id }).lean();
-        const totalPaid = allTransactions
-            .filter(t => t.status === 'Thành công')
-            .reduce((sum, t) => sum + t.amount, 0);
-
-        // Tổng tiền hợp đồng
-        const totalContractValue = contract.annualPrice * contract.area * contract.term;
-        const outstandingDebt = totalContractValue - totalPaid;
-
-        res.json({
-            contract: {
-                ...contract,
-                contractCode: contract.contractCode,
-                landAddress: contract.parcelAddress,
-                area: contract.area,
-                duration: `${contract.term} Năm`,
-                startDate: contract.startDate,
-                endDate: contract.endDate,
-                purpose: contract.purpose,
-                currentDebt: outstandingDebt > 0 ? outstandingDebt : 0,
-            },
-            recentTransactions,
-            totalPaid,
-            totalContractValue,
+            .limit(5);
+        }
+        
+        res.status(200).json({
+            success: true,
+            contract,
+            recentTransactions
         });
     } catch (error) {
-        console.error('[getDashboard]', error);
+        console.error('[Renter getDashboard]', error);
         res.status(500).json({ message: 'Lỗi máy chủ', error: error.message });
     }
 };
 
-// ==========================================
-//  HỢP ĐỒNG CHI TIẾT
-//  GET /api/renter/contract
-//  Trả về: đầy đủ thông tin hợp đồng + thửa đất + tiến trình thanh toán
-// ==========================================
-const getContractDetail = async (req, res) => {
+// @desc    Search contract by CCCD or contract code
+// @route   GET /api/renter/search
+// @access  Private
+exports.searchContract = async (req, res) => {
     try {
-        const userId = req.user._id.toString();
-        let contract = await Contract.findOne({ renterId: userId, status: 'ĐANG THUÊ' }).lean();
-        if (!contract) contract = await Contract.findOne({ status: 'ĐANG THUÊ' }).lean();
-        if (!contract) return res.status(404).json({ message: 'Không tìm thấy hợp đồng.' });
-
-        // Giao dịch đã hoàn thành
-        const successTransactions = await Transaction.find({
-            contractId: contract._id,
-            status: 'Thành công'
-        }).lean();
-
-        const totalPaid = successTransactions.reduce((sum, t) => sum + t.amount, 0);
-        const totalContractValue = contract.annualPrice * contract.area * contract.term;
-        const paymentPercent = Math.min(Math.round((totalPaid / totalContractValue) * 100), 100);
-        const remainingDebt = totalContractValue - totalPaid;
-
-        // Tính số kỳ đã nộp (mỗi kỳ 1 năm)
-        const periodsPaid = successTransactions.length;
-
-        res.json({
-            contract: {
-                ...contract,
-                rentAmount: contract.annualPrice,
-                totalRent: contract.annualPrice * contract.area,
-                duration: `${contract.term} Năm`,
-                landAddress: contract.parcelAddress,
-            },
-            paymentProgress: {
-                paymentPercent,
-                totalPaid,
-                totalContractValue,
-                remainingDebt,
-                periodsPaid,
-                totalPeriods: contract.term,
-            }
+        const { query } = req.query;
+        const userId = req.user.id;
+        
+        if (!query) {
+            return res.status(400).json({ message: 'Vui lòng nhập từ khóa tìm kiếm' });
+        }
+        
+        // Tìm kiếm theo mã hợp đồng hoặc thông tin người thuê
+        const contract = await Contract.findOne({
+            $and: [
+                { renterId: userId }, // Chỉ tìm hợp đồng của user hiện tại
+                {
+                    $or: [
+                        { contractCode: { $regex: query, $options: 'i' } },
+                        { renterName: { $regex: query, $options: 'i' } }
+                    ]
+                }
+            ]
+        });
+        
+        if (!contract) {
+            return res.status(404).json({ 
+                success: false, 
+                message: 'Không tìm thấy hợp đồng phù hợp' 
+            });
+        }
+        
+        // Lấy giao dịch gần nhất của hợp đồng này
+        const recentTransactions = await Transaction.find({ 
+            contractId: contract._id 
+        })
+        .sort({ date: -1 })
+        .limit(5);
+        
+        res.status(200).json({
+            success: true,
+            contract,
+            recentTransactions
         });
     } catch (error) {
-        console.error('[getContractDetail]', error);
+        console.error('[Renter searchContract]', error);
         res.status(500).json({ message: 'Lỗi máy chủ', error: error.message });
     }
 };
 
-// ==========================================
-//  TÀI CHÍNH
-//  GET /api/renter/finance
-//  Trả về: tóm tắt nợ + toàn bộ danh sách lịch sử giao dịch
-// ==========================================
-const getFinance = async (req, res) => {
+// @desc    Download contract PDF
+// @route   GET /api/renter/contract/:contractCode/pdf
+// @access  Private
+exports.downloadContractPDF = async (req, res) => {
     try {
-        const userId = req.user._id.toString();
-        let contract = await Contract.findOne({ renterId: userId, status: 'ĐANG THUÊ' }).lean();
-        if (!contract) contract = await Contract.findOne({ status: 'ĐANG THUÊ' }).lean();
-        if (!contract) return res.status(404).json({ message: 'Không tìm thấy hợp đồng.' });
+        const { contractCode } = req.params;
+        const userId = req.user.id;
+        
+        // Tìm hợp đồng
+        const contract = await Contract.findOne({ 
+            contractCode,
+            renterId: userId 
+        });
+        
+        if (!contract) {
+            return res.status(404).json({ message: 'Không tìm thấy hợp đồng' });
+        }
+        
+        // Tạo PDF
+        const doc = new PDFDocument({ margin: 50 });
+        
+        // Set response headers
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename=hop-dong-${contractCode}.pdf`);
+        
+        // Pipe PDF to response
+        doc.pipe(res);
+        
+        // Add content to PDF
+        doc.fontSize(20).text('HỢP ĐỒNG THUÊ ĐẤT', { align: 'center' });
+        doc.moveDown();
+        
+        doc.fontSize(14).text(`Mã hợp đồng: ${contract.contractCode}`);
+        doc.text(`Người thuê: ${contract.renterName}`);
+        doc.text(`Địa chỉ thửa đất: ${contract.parcelAddress}`);
+        doc.text(`Diện tích: ${contract.area.toLocaleString('vi-VN')} m²`);
+        doc.text(`Mục đích sử dụng: ${contract.purpose}`);
+        doc.text(`Thời hạn thuê: ${contract.term} năm`);
+        doc.text(`Ngày bắt đầu: ${new Date(contract.startDate).toLocaleDateString('vi-VN')}`);
+        doc.text(`Ngày kết thúc: ${new Date(contract.endDate).toLocaleDateString('vi-VN')}`);
+        doc.text(`Giá thuê hàng năm: ${contract.annualPrice.toLocaleString('vi-VN')} VNĐ/m²`);
+        doc.text(`Trạng thái: ${contract.status}`);
+        
+        doc.moveDown();
+        doc.text('Hợp đồng này được tạo tự động từ hệ thống quản lý đất đai.', { align: 'center' });
+        doc.text(`Ngày xuất: ${new Date().toLocaleDateString('vi-VN')}`, { align: 'center' });
+        
+        // Finalize PDF
+        doc.end();
+        
+    } catch (error) {
+        console.error('[Renter downloadContractPDF]', error);
+        res.status(500).json({ message: 'Lỗi khi tạo PDF', error: error.message });
+    }
+};
 
-        const transactions = await Transaction.find({ contractId: contract._id })
-            .sort({ date: -1 })
-            .lean();
-
+// @desc    Get renter finance data
+// @route   GET /api/renter/finance
+// @access  Private (Renter only)
+exports.getFinance = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        
+        // Tìm hợp đồng hiện tại của user
+        const contract = await Contract.findOne({ 
+            renterId: userId,
+            status: 'ĐANG THUÊ'
+        });
+        
+        if (!contract) {
+            return res.status(404).json({ 
+                success: false,
+                message: 'Không tìm thấy hợp đồng hiện tại' 
+            });
+        }
+        
+        // Lấy tất cả giao dịch của hợp đồng này
+        const transactions = await Transaction.find({ 
+            contractId: contract._id 
+        }).sort({ date: -1 });
+        
+        // Tính toán tóm tắt tài chính
         const totalPaid = transactions
             .filter(t => t.status === 'Thành công')
             .reduce((sum, t) => sum + t.amount, 0);
-
-        const pendingAmount = transactions
-            .filter(t => t.status === 'Chờ xử lý')
-            .reduce((sum, t) => sum + t.amount, 0);
-
-        const totalContractValue = contract.annualPrice * contract.area * contract.term;
-        const currentDebt = totalContractValue - totalPaid;
-
-        // Dữ liệu Biểu đồ Chi tiêu hàng tháng (nhóm theo tháng)
-        const monthlyData = {};
-        transactions
-            .filter(t => t.status === 'Thành công')
-            .forEach(t => {
-                const key = `T${new Date(t.date).getMonth() + 1}`;
-                monthlyData[key] = (monthlyData[key] || 0) + t.amount;
-            });
-
-        const chartData = Object.keys(monthlyData).map(k => ({ name: k, value: monthlyData[k] / 1_000_000 }));
-
-        res.json({
-            summary: {
-                totalPaid,
-                currentDebt: currentDebt > 0 ? currentDebt : 0,
-                pendingAmount,
-                totalContractValue,
-                annualRent: contract.annualPrice * contract.area,
-            },
+        
+        const annualRent = contract.annualPrice * contract.area;
+        const currentDebt = contract.currentDebt || 0;
+        
+        const summary = {
+            totalPaid,
+            currentDebt,
+            annualRent,
+            contractCode: contract.contractCode
+        };
+        
+        res.status(200).json({
+            success: true,
             transactions,
-            chartData,
+            summary
         });
     } catch (error) {
-        console.error('[getFinance]', error);
+        console.error('[Renter getFinance]', error);
         res.status(500).json({ message: 'Lỗi máy chủ', error: error.message });
     }
 };
 
-// ==========================================
-//  TẠO GIAO DỊCH THANH TOÁN
-//  POST /api/renter/payment
-//  Body: { contractId, amount, paymentMethod }
-// ==========================================
-const createPayment = async (req, res) => {
+// @desc    Create new payment
+// @route   POST /api/renter/payment
+// @access  Private (Renter only)
+exports.createPayment = async (req, res) => {
     try {
+        const userId = req.user.id;
         const { amount, paymentMethod } = req.body;
-
-        const contract = await Contract.findOne({ status: 'ĐANG THUÊ' });
-        if (!contract) return res.status(404).json({ message: 'Không tìm thấy hợp đồng.' });
-
+        
         if (!amount || amount <= 0) {
-            return res.status(400).json({ message: 'Số tiền thanh toán không hợp lệ.' });
+            return res.status(400).json({ message: 'Số tiền thanh toán không hợp lệ' });
         }
-
-        // Tạo mã giao dịch duy nhất
-        const txCode = `TXN-${contract.contractCode}-${Date.now()}`;
-
-        const newTx = new Transaction({
+        
+        // Tìm hợp đồng hiện tại của user
+        const contract = await Contract.findOne({ 
+            renterId: userId,
+            status: 'ĐANG THUÊ'
+        });
+        
+        if (!contract) {
+            return res.status(404).json({ message: 'Không tìm thấy hợp đồng hiện tại' });
+        }
+        
+        // Tạo mã giao dịch tự động
+        const transactionCode = `GD${Date.now()}`;
+        
+        // Tạo giao dịch mới
+        const transaction = await Transaction.create({
             contractId: contract._id,
-            transactionCode: txCode,
-            amount: Number(amount),
+            transactionCode,
+            amount,
+            status: 'Thành công', // Mock - trong thực tế sẽ là 'Chờ xử lý'
             paymentMethod: paymentMethod || 'Chuyển khoản',
-            status: 'Thành công', // Trong thực tế sẽ tích hợp cổng thanh toán
-            date: new Date(),
+            date: new Date()
         });
-
-        const saved = await newTx.save();
-
-        // Cập nhật nợ còn lại trong hợp đồng
-        contract.currentDebt = Math.max(0, contract.currentDebt - Number(amount));
+        
+        // Cập nhật nợ hiện tại của hợp đồng
+        contract.currentDebt = Math.max(0, contract.currentDebt - amount);
         await contract.save();
-
+        
         res.status(201).json({
-            message: 'Thanh toán thành công.',
-            transaction: saved,
+            success: true,
+            message: 'Tạo giao dịch thanh toán thành công',
+            transaction
         });
     } catch (error) {
-        console.error('[createPayment]', error);
+        console.error('[Renter createPayment]', error);
         res.status(500).json({ message: 'Lỗi máy chủ', error: error.message });
     }
 };
 
-// ==========================================
-//  DANH SÁCH PHẢN HỒI
-//  GET /api/renter/feedback
-//  Trả về: danh sách phản hồi của người dùng + thống kê
-// ==========================================
-const getFeedbacks = async (req, res) => {
+// @desc    Get all contracts for renter
+// @route   GET /api/renter/contracts
+// @access  Private (Renter only)
+exports.getContracts = async (req, res) => {
     try {
-        const userId = req.user._id.toString();
-        const feedbacks = await Feedback.find({ userId })
-            .sort({ createdAt: -1 })
-            .lean();
-
-        const stats = {
-            total: feedbacks.length,
-            processing: feedbacks.filter(f => f.status === 'Đang xử lý').length,
-            responded: feedbacks.filter(f => f.status === 'Đã phản hồi').length,
-            received: feedbacks.filter(f => f.status === 'Đã tiếp nhận').length,
-        };
-
-        res.json({ feedbacks, stats });
+        const userId = req.user.id;
+        
+        const contracts = await Contract.find({ renterId: userId })
+            .sort({ createdAt: -1 });
+        
+        res.status(200).json({
+            success: true,
+            contracts
+        });
     } catch (error) {
-        console.error('[getFeedbacks]', error);
+        console.error('[Renter getContracts]', error);
         res.status(500).json({ message: 'Lỗi máy chủ', error: error.message });
     }
 };
 
-// ==========================================
-//  GỬI PHẢN HỒI MỚI
-//  POST /api/renter/feedback
-//  Body: { type, lurcCode, title, content }
-// ==========================================
-const createFeedback = async (req, res) => {
+// @desc    Get contract details
+// @route   GET /api/renter/contract/:id
+// @access  Private (Renter only)
+exports.getContractDetails = async (req, res) => {
     try {
-        const { type, lurcCode, title, content } = req.body;
-        const userId = req.user._id.toString();
-        const userName = req.user.name || 'Người thuê đất';
-
-        if (!type || !title || !content) {
-            return res.status(400).json({ message: 'Vui lòng điền đầy đủ Loại, Tiêu đề và Nội dung.' });
+        const { id } = req.params;
+        const userId = req.user.id;
+        
+        const contract = await Contract.findOne({ 
+            _id: id,
+            renterId: userId 
+        });
+        
+        if (!contract) {
+            return res.status(404).json({ message: 'Không tìm thấy hợp đồng' });
         }
+        
+        // Cập nhật tên người thuê từ thông tin user hiện tại
+        contract.renterName = req.user.name;
+        
+        // Lấy tất cả giao dịch của hợp đồng này
+        const transactions = await Transaction.find({ 
+            contractId: contract._id 
+        }).sort({ date: -1 });
+        
+        res.status(200).json({
+            success: true,
+            contract,
+            transactions
+        });
+    } catch (error) {
+        console.error('[Renter getContractDetails]', error);
+        res.status(500).json({ message: 'Lỗi máy chủ', error: error.message });
+    }
+};
 
-        // Map type slug -> Vietnamese label + color
-        const typeMap = {
-            'tranh-chap': { label: 'Tranh chấp ranh giới', color: 'default' },
-            'gia-thue':   { label: 'Kiến nghị giá thuê',  color: 'success' },
-            'ha-tang':    { label: 'Báo cáo lấn chiếm',   color: 'warning' },
-            'ho-tro':     { label: 'Hỗ trợ thủ tục',      color: 'info' },
-            'khac':       { label: 'Khác',                 color: 'default' },
+// @desc    Get current contract for contract detail page
+// @route   GET /api/renter/contract
+// @access  Private (Renter only)
+exports.getCurrentContract = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        
+        // Tìm hợp đồng hiện tại của user
+        const contract = await Contract.findOne({ 
+            renterId: userId,
+            status: 'ĐANG THUÊ'
+        });
+        
+        if (!contract) {
+            return res.status(404).json({ 
+                success: false,
+                message: 'Không tìm thấy hợp đồng hiện tại' 
+            });
+        }
+        
+        // Cập nhật tên người thuê từ thông tin user hiện tại
+        contract.renterName = req.user.name;
+        
+        // Tính toán tiến độ thanh toán (mock data for now)
+        const paymentProgress = {
+            paymentPercent: 60,
+            totalPaid: 135000000,
+            remainingDebt: 90000000,
+            periodsPaid: 3,
+            totalPeriods: 5
         };
-        const typeInfo = typeMap[type] || { label: type, color: 'default' };
+        
+        res.status(200).json({
+            success: true,
+            contract,
+            paymentProgress
+        });
+    } catch (error) {
+        console.error('[Renter getCurrentContract]', error);
+        res.status(500).json({ message: 'Lỗi máy chủ', error: error.message });
+    }
+};
 
-        const newFeedback = new Feedback({
+// @desc    Get feedback list for renter
+// @route   GET /api/renter/feedback
+// @access  Private (Renter only)
+exports.getFeedback = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        
+        const feedbacks = await Feedback.find({ userId })
+            .sort({ createdAt: -1 });
+        
+        res.status(200).json({
+            success: true,
+            feedbacks
+        });
+    } catch (error) {
+        console.error('[Renter getFeedback]', error);
+        res.status(500).json({ message: 'Lỗi máy chủ', error: error.message });
+    }
+};
+
+// @desc    Create new feedback
+// @route   POST /api/renter/feedback
+// @access  Private (Renter only)
+exports.createFeedback = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { type, title, content } = req.body;
+        
+        if (!type || !title || !content) {
+            return res.status(400).json({ 
+                message: 'Vui lòng điền đầy đủ thông tin bắt buộc' 
+            });
+        }
+        
+        // Tạo mã LURC tự động
+        const lurcCode = `LURC${Date.now()}`;
+        
+        // Xác định màu sắc theo loại phản hồi
+        const typeColors = {
+            'Khiếu nại': 'red',
+            'Kiến nghị': 'blue',
+            'Thắc mắc': 'orange',
+            'Góp ý': 'green',
+            'Khác': 'default'
+        };
+        
+        const feedback = await Feedback.create({
             userId,
-            type: typeInfo.label,
-            typeColor: typeInfo.color,
-            lurcCode: lurcCode || 'YT-2023-00892',
+            type,
+            typeColor: typeColors[type] || 'default',
+            lurcCode,
             title,
             content,
-            status: 'Đã tiếp nhận',
+            status: 'Đã tiếp nhận'
         });
-
-        const saved = await newFeedback.save();
-
-        // Ghi audit log
-        try {
-            const AuditLog = require('../models/AuditLog');
-            await new AuditLog({
-                officer: `${userName} (Người thuê)`,
-                role: 'Người thuê đất',
-                action: `Gửi phản hồi mới: "${title}"`,
-                target: saved._id.toString(),
-                targetType: 'Phản hồi',
-                status: 'Thành công',
-                statusColor: 'success',
-            }).save();
-        } catch (e) { /* Nếu lỗi ghi log, không ảnh hưởng response */ }
-
+        
         res.status(201).json({
-            message: 'Phản hồi đã được gửi thành công! Chúng tôi sẽ phản hồi trong 2-3 ngày làm việc.',
-            feedback: saved,
+            success: true,
+            message: 'Gửi phản hồi thành công',
+            feedback
         });
     } catch (error) {
-        console.error('[createFeedback]', error);
+        console.error('[Renter createFeedback]', error);
+        res.status(500).json({ message: 'Lỗi máy chủ', error: error.message });
+    }
+};
+// @desc    Get land requests for renter
+// @route   GET /api/renter/land-requests
+// @access  Private (Renter only)
+exports.getLandRequests = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        
+        const requests = await LandRequest.find({ requesterId: userId })
+            .populate('reviewedBy', 'name position')
+            .sort({ createdAt: -1 });
+        
+        res.status(200).json({
+            success: true,
+            requests
+        });
+    } catch (error) {
+        console.error('[Renter getLandRequests]', error);
         res.status(500).json({ message: 'Lỗi máy chủ', error: error.message });
     }
 };
 
-module.exports = {
-    getDashboard,
-    getContractDetail,
-    getFinance,
-    createPayment,
-    getFeedbacks,
-    createFeedback,
+// @desc    Create new land request
+// @route   POST /api/renter/land-requests
+// @access  Private (Renter only)
+exports.createLandRequest = async (req, res) => {
+    try {
+        console.log('[createLandRequest] User:', req.user);
+        console.log('[createLandRequest] Body:', req.body);
+        
+        const userId = req.user.id;
+        const requestData = {
+            ...req.body,
+            requesterId: userId
+        };
+        
+        console.log('[createLandRequest] Request data:', requestData);
+        
+        const request = await LandRequest.create(requestData);
+        
+        console.log('[createLandRequest] Created request:', request);
+        
+        // Populate để trả về thông tin đầy đủ
+        await request.populate('requesterId', 'name email phone');
+        
+        res.status(201).json({
+            success: true,
+            message: 'Tạo đơn xin thuê đất thành công',
+            request
+        });
+    } catch (error) {
+        console.error('[Renter createLandRequest] Error:', error);
+        
+        if (error.name === 'ValidationError') {
+            const messages = Object.values(error.errors).map(err => err.message);
+            return res.status(400).json({ 
+                success: false,
+                message: messages.join(', '),
+                errors: error.errors
+            });
+        }
+        
+        res.status(500).json({ 
+            success: false,
+            message: 'Lỗi máy chủ', 
+            error: error.message 
+        });
+    }
+};
+
+// @desc    Get single land request
+// @route   GET /api/renter/land-requests/:id
+// @access  Private (Renter only)
+exports.getLandRequest = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { id } = req.params;
+        
+        const LandRequest = require('../models/LandRequest');
+        const request = await LandRequest.findOne({ 
+            _id: id, 
+            requesterId: userId 
+        })
+        .populate('requesterId', 'name email phone')
+        .populate('reviewedBy', 'name position')
+        .populate('landParcelId');
+        
+        if (!request) {
+            return res.status(404).json({ message: 'Không tìm thấy đơn xin thuê đất' });
+        }
+        
+        res.status(200).json({
+            success: true,
+            request
+        });
+    } catch (error) {
+        console.error('[Renter getLandRequest]', error);
+        res.status(500).json({ message: 'Lỗi máy chủ', error: error.message });
+    }
+};
+
+// @desc    Update land request (only if status is 'Yêu cầu bổ sung')
+// @route   PUT /api/renter/land-requests/:id
+// @access  Private (Renter only)
+exports.updateLandRequest = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { id } = req.params;
+        
+        const LandRequest = require('../models/LandRequest');
+        const request = await LandRequest.findOne({ 
+            _id: id, 
+            requesterId: userId 
+        });
+        
+        if (!request) {
+            return res.status(404).json({ message: 'Không tìm thấy đơn xin thuê đất' });
+        }
+        
+        // Chỉ cho phép cập nhật khi trạng thái là 'Yêu cầu bổ sung'
+        if (request.status !== 'Yêu cầu bổ sung') {
+            return res.status(400).json({ 
+                message: 'Chỉ có thể cập nhật đơn có trạng thái "Yêu cầu bổ sung"' 
+            });
+        }
+        
+        // Cập nhật thông tin
+        Object.keys(req.body).forEach(key => {
+            if (key !== 'requesterId' && key !== 'requestCode') {
+                request[key] = req.body[key];
+            }
+        });
+        
+        // Đặt lại trạng thái về 'Chờ xử lý'
+        request.status = 'Chờ xử lý';
+        request.reviewedBy = undefined;
+        request.reviewedAt = undefined;
+        request.adminNotes = '';
+        
+        await request.save();
+        await request.populate(['requesterId', 'reviewedBy'], 'name email phone position');
+        
+        res.status(200).json({
+            success: true,
+            message: 'Cập nhật đơn xin thuê đất thành công',
+            request
+        });
+    } catch (error) {
+        console.error('[Renter updateLandRequest]', error);
+        
+        if (error.name === 'ValidationError') {
+            const messages = Object.values(error.errors).map(err => err.message);
+            return res.status(400).json({ message: messages.join(', ') });
+        }
+        
+        res.status(500).json({ message: 'Lỗi máy chủ', error: error.message });
+    }
 };

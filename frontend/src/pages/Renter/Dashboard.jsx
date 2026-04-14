@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Row, Col, Card, Typography, Input, Button, Tag, Steps, List, Space } from 'antd';
+import { Row, Col, Card, Typography, Input, Button, Tag, Steps, List, Space, Modal, message } from 'antd';
 import { 
   SearchOutlined, 
   EnvironmentOutlined, 
@@ -12,13 +12,22 @@ import {
   PhoneOutlined,
   TransactionOutlined,
   MessageOutlined,
-  QuestionCircleOutlined
+  QuestionCircleOutlined,
+  DownloadOutlined,
+  CreditCardOutlined
 } from '@ant-design/icons';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
 
 const { Title, Text, Paragraph } = Typography;
 
 const Dashboard = () => {
   const [data, setData] = useState({ contract: null, recentTransactions: [] });
+  const [searchValue, setSearchValue] = useState('');
+  const [paymentGuideVisible, setPaymentGuideVisible] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+  const { user } = useAuth();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -45,6 +54,82 @@ const Dashboard = () => {
 
   const transactions = data.recentTransactions?.length > 0 ? data.recentTransactions : [];
 
+  // Xử lý tìm kiếm hợp đồng
+  const handleSearch = async () => {
+    if (!searchValue.trim()) {
+      message.warning('Vui lòng nhập số CCCD hoặc mã hợp đồng');
+      return;
+    }
+    
+    setLoading(true);
+    try {
+      // Gọi API tìm kiếm hợp đồng
+      const response = await axios.get(`http://localhost:5000/api/renter/search?query=${searchValue}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      
+      if (response.data.success) {
+        message.success('Tìm thấy thông tin hợp đồng!');
+        // Cập nhật dữ liệu dashboard với kết quả tìm kiếm
+        setData(response.data);
+      } else {
+        message.error('Không tìm thấy thông tin hợp đồng');
+      }
+    } catch (error) {
+      console.error('Search error:', error);
+      message.error('Lỗi khi tìm kiếm. Vui lòng thử lại.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Xử lý thanh toán
+  const handlePayment = () => {
+    navigate('/renter/finance');
+  };
+
+  // Xử lý tải hợp đồng PDF
+  const handleDownloadContract = async () => {
+    setLoading(true);
+    try {
+      const response = await axios.get(`http://localhost:5000/api/renter/contract/${contract.contractCode}/pdf`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        responseType: 'blob'
+      });
+      
+      // Tạo URL để tải file
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `hop-dong-${contract.contractCode}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      
+      message.success('Tải hợp đồng thành công!');
+    } catch (error) {
+      console.error('Download error:', error);
+      message.error('Lỗi khi tải hợp đồng. Vui lòng thử lại.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Xử lý gửi yêu cầu hỗ trợ
+  const handleSupportRequest = () => {
+    navigate('/renter/feedback');
+  };
+
+  // Hiển thị modal hướng dẫn thanh toán
+  const showPaymentGuide = () => {
+    setPaymentGuideVisible(true);
+  };
+
   return (
     <div>
       {/* Hero Banner Area */}
@@ -63,8 +148,17 @@ const Dashboard = () => {
               placeholder="Nhập số CCCD hoặc Mã hợp đồng" 
               variant="borderless" 
               style={{ fontSize: '16px' }}
+              value={searchValue}
+              onChange={(e) => setSearchValue(e.target.value)}
+              onPressEnter={handleSearch}
             />
-            <Button type="primary" size="large" style={{ backgroundColor: '#1e7e34', borderRadius: '6px' }}>
+            <Button 
+              type="primary" 
+              size="large" 
+              style={{ backgroundColor: '#1e7e34', borderRadius: '6px' }}
+              loading={loading}
+              onClick={handleSearch}
+            >
               Tra cứu ngay
             </Button>
           </div>
@@ -123,10 +217,22 @@ const Dashboard = () => {
                 <Text type="secondary" style={{ fontSize: '12px' }}>Dư nợ hiện tại</Text>
                 <div style={{ color: '#d9363e', fontSize: '24px', fontWeight: 'bold' }}>{contract.currentDebt.toLocaleString('vi-VN')} <span style={{ fontSize: '14px', fontWeight: 'normal' }}>VNĐ</span></div>
               </div>
-              <Button type="primary" size="large" style={{ backgroundColor: '#002e42', height: '56px', padding: '0 32px', borderRadius: '8px' }}>
+              <Button 
+                type="primary" 
+                size="large" 
+                icon={<CreditCardOutlined />}
+                style={{ backgroundColor: '#002e42', height: '56px', padding: '0 32px', borderRadius: '8px' }}
+                onClick={handlePayment}
+              >
                 Thanh toán ngay
               </Button>
-              <Button size="large" icon={<FilePdfOutlined />} style={{ height: '56px', padding: '0 24px', borderRadius: '8px' }}>
+              <Button 
+                size="large" 
+                icon={<FilePdfOutlined />} 
+                style={{ height: '56px', padding: '0 24px', borderRadius: '8px' }}
+                loading={loading}
+                onClick={handleDownloadContract}
+              >
                 Tải hợp đồng (PDF)
               </Button>
             </div>
@@ -174,7 +280,13 @@ const Dashboard = () => {
                 { icon: <HomeOutlined />, title: <Text style={{ fontSize: '14px' }}>Nộp trực tiếp tại Bộ phận Một cửa cấp Huyện/Xã</Text> },
               ]}
             />
-            <Button block style={{ marginTop: '16px', borderRadius: '6px' }}>Xem chi tiết hướng dẫn</Button>
+            <Button 
+              block 
+              style={{ marginTop: '16px', borderRadius: '6px' }}
+              onClick={showPaymentGuide}
+            >
+              Xem chi tiết hướng dẫn
+            </Button>
           </Card>
 
           {/* Feedback Banner */}
@@ -187,7 +299,12 @@ const Dashboard = () => {
               <Text style={{ fontSize: '10px', color: 'rgba(255,255,255,0.5)', display: 'block', marginBottom: 4 }}>ĐƯỜNG DÂY NÓNG</Text>
               <Text style={{ fontSize: '20px', fontWeight: 'bold', color: '#f3c754' }}>1900 88 99</Text>
             </div>
-            <Button block size="large" style={{ backgroundColor: '#f39c12', color: 'white', border: 'none', fontWeight: 'bold' }}>
+            <Button 
+              block 
+              size="large" 
+              style={{ backgroundColor: '#f39c12', color: 'white', border: 'none', fontWeight: 'bold' }}
+              onClick={handleSupportRequest}
+            >
               Gửi yêu cầu hỗ trợ
             </Button>
           </div>
@@ -201,6 +318,65 @@ const Dashboard = () => {
           </div>
         </Col>
       </Row>
+
+      {/* Modal hướng dẫn thanh toán chi tiết */}
+      <Modal
+        title={
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            <QuestionCircleOutlined style={{ color: '#1e7e34', marginRight: 8 }} />
+            <span>Hướng dẫn thanh toán chi tiết</span>
+          </div>
+        }
+        open={paymentGuideVisible}
+        onCancel={() => setPaymentGuideVisible(false)}
+        footer={[
+          <Button key="close" onClick={() => setPaymentGuideVisible(false)}>
+            Đóng
+          </Button>,
+          <Button key="payment" type="primary" onClick={handlePayment} style={{ backgroundColor: '#1e7e34' }}>
+            Thanh toán ngay
+          </Button>
+        ]}
+        width={600}
+      >
+        <div style={{ padding: '16px 0' }}>
+          <Title level={5} style={{ color: '#1e7e34' }}>1. Thanh toán qua VietQR</Title>
+          <Paragraph>
+            • Mở ứng dụng ngân hàng trên điện thoại<br/>
+            • Chọn chức năng "Quét mã QR" hoặc "Chuyển khoản QR"<br/>
+            • Quét mã QR được cung cấp trong phần thanh toán<br/>
+            • Kiểm tra thông tin và xác nhận giao dịch
+          </Paragraph>
+
+          <Title level={5} style={{ color: '#1e7e34' }}>2. Chuyển khoản ngân hàng</Title>
+          <div style={{ backgroundColor: '#f5f5f5', padding: '16px', borderRadius: '8px', marginBottom: '16px' }}>
+            <Text strong>Thông tin tài khoản nhận:</Text><br/>
+            <Text>Tên tài khoản: KHO BẠC NHÀ NƯỚC GIA LÂM</Text><br/>
+            <Text>Số tài khoản: 1234567890</Text><br/>
+            <Text>Ngân hàng: Vietcombank - Chi nhánh Gia Lâm</Text><br/>
+            <Text>Nội dung: {contract.contractCode} - {user?.name}</Text>
+          </div>
+
+          <Title level={5} style={{ color: '#1e7e34' }}>3. Nộp trực tiếp</Title>
+          <Paragraph>
+            <EnvironmentOutlined style={{ color: '#1e7e34' }} /> <strong>Bộ phận Một cửa UBND Huyện Gia Lâm</strong><br/>
+            Địa chỉ: Số 1, Đường Lê Lợi, Thị trấn Trâu Quỳ, Huyện Gia Lâm, Hà Nội<br/>
+            Thời gian: 7:30 - 11:30 và 13:30 - 17:00 (Thứ 2 - Thứ 6)<br/>
+            Hotline: <PhoneOutlined /> 024.3827.1234
+          </Paragraph>
+
+          <div style={{ backgroundColor: '#fff7e6', border: '1px solid #ffd591', borderRadius: '8px', padding: '12px' }}>
+            <Text style={{ color: '#fa8c16', fontWeight: 'bold' }}>
+              ⚠️ Lưu ý quan trọng:
+            </Text>
+            <ul style={{ margin: '8px 0 0 16px', color: '#8c8c8c' }}>
+              <li>Vui lòng ghi đúng nội dung chuyển khoản để hệ thống tự động cập nhật</li>
+              <li>Sau khi thanh toán, vui lòng chờ 15-30 phút để hệ thống cập nhật</li>
+              <li>Nếu có vấn đề, liên hệ hotline: 1900 88 99</li>
+            </ul>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };

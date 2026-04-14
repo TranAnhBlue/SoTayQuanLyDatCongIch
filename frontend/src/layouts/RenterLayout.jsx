@@ -10,6 +10,8 @@ import {
   QuestionCircleOutlined,
   LogoutOutlined,
   EnvironmentOutlined,
+  HistoryOutlined,
+  FormOutlined,
 } from '@ant-design/icons';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -55,6 +57,8 @@ const RenterLayout = () => {
   const siderItems = [
     { key: '/renter/dashboard', icon: <AppstoreOutlined />, label: 'Tổng quan' },
     { key: '/renter/contract', icon: <FileTextOutlined />, label: 'Hợp đồng của tôi' },
+    { key: '/renter/contract-history', icon: <HistoryOutlined />, label: 'Lịch sử hợp đồng' },
+    { key: '/renter/land-requests', icon: <FormOutlined />, label: 'Đơn xin thuê đất' },
     { key: '/renter/finance', icon: <TransactionOutlined />, label: 'Lịch sử giao dịch' },
   ];
 
@@ -121,6 +125,7 @@ const RenterLayout = () => {
               type="primary" 
               block 
               style={{ backgroundColor: '#002e42', height: '40px', borderRadius: '6px' }}
+              onClick={() => navigate('/renter/create-land-request')}
             >
               Tạo yêu cầu mới
             </Button>

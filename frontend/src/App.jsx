@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { ConfigProvider } from 'antd';
 import RenterDashboard from './pages/Renter/Dashboard';
 import ContractDetail from './pages/Renter/ContractDetail';
+import ContractHistory from './pages/Renter/ContractHistory';
 import Finance from './pages/Renter/Finance';
 import Feedback from './pages/Renter/Feedback';
 import AdminDashboard from './pages/Admin/AdminDashboard';
@@ -10,6 +11,13 @@ import AdminApprovals from './pages/Admin/AdminApprovals';
 import AdminReport from './pages/Admin/AdminReport';
 import AdminHeatmap from './pages/Admin/AdminHeatmap';
 import AdminSOPLog from './pages/Admin/AdminSOPLog';
+import LandParcels from './pages/Admin/LandParcels';
+import LegalDocuments from './pages/Admin/LegalDocuments';
+import ChangeHistory from './pages/Admin/ChangeHistory';
+import LandRequestManagement from './pages/Admin/LandRequestManagement';
+import CreateLandRequest from './pages/Renter/CreateLandRequest';
+import CreateLandRequestSimple from './pages/Renter/CreateLandRequestSimple';
+import LandRequests from './pages/Renter/LandRequests';
 import Login from './pages/Auth/Login';
 import Register from './pages/Auth/Register';
 import ForgotPassword from './pages/Auth/ForgotPassword';
@@ -96,6 +104,10 @@ function App() {
           >
             <Route path="dashboard" element={<RenterDashboard />} />
             <Route path="contract" element={<ContractDetail />} />
+            <Route path="contract-history" element={<ContractHistory />} />
+            <Route path="land-requests" element={<LandRequests />} />
+            <Route path="create-land-request" element={<CreateLandRequest />} />
+            <Route path="create-land-request-simple" element={<CreateLandRequestSimple />} />
             <Route path="finance" element={<Finance />} />
             <Route path="feedback" element={<Feedback />} />
           </Route>
@@ -112,6 +124,10 @@ function App() {
             <Route path="dashboard" element={<AdminDashboard />} />
             <Route path="approvals" element={<AdminApprovals />} />
             <Route path="sop-logs" element={<AdminSOPLog />} />
+            <Route path="land-parcels" element={<LandParcels />} />
+            <Route path="legal-documents" element={<LegalDocuments />} />
+            <Route path="change-history" element={<ChangeHistory />} />
+            <Route path="land-request-management" element={<LandRequestManagement />} />
             <Route path="reports" element={<AdminReport />} />
             <Route path="heatmap" element={<AdminHeatmap />} />
           </Route>

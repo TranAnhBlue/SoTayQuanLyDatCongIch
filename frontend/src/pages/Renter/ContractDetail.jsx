@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Row, Col, Typography, Card, Tag, Button, Progress, List, Space, Modal, InputNumber, message } from 'antd';
+import { useAuth } from '../../contexts/AuthContext';
 import {
   CheckCircleOutlined,
   ArrowRightOutlined,
@@ -15,6 +16,7 @@ import {
 const { Title, Text } = Typography;
 
 const ContractDetail = () => {
+  const { user } = useAuth(); // Get current user info
   const [contractData, setContractData] = useState(null);
   const [progress, setProgress] = useState({ paymentPercent: 0, totalPaid: 0, remainingDebt: 0, periodsPaid: 0, totalPeriods: 5 });
   const [payModal, setPayModal] = useState(false);
@@ -35,6 +37,7 @@ const ContractDetail = () => {
       }
     } catch (error) {
       console.error('Error fetching contract detail:', error);
+      // If no contract found, we'll use fallback data with current user name
     }
   };
 
@@ -59,7 +62,7 @@ const ContractDetail = () => {
   // Fallback data (hiển thị khi API chưa trả về)
   const c = contractData || {
     contractCode: 'YT-2023-00892',
-    renterName: 'Lê Văn Hùng',
+    renterName: user?.name || 'Người thuê đất', // Use actual user name
     parcelAddress: 'Thửa đất số 5691, Tờ bản đồ số C44, Thôn Lại Hoàng, Xã Yên Thường',
     area: 2450,
     purpose: 'Đất sản xuất nông nghiệp (Trồng lúa)',
@@ -244,6 +247,9 @@ const ContractDetail = () => {
         cancelText="Hủy"
         okButtonProps={{ loading: paying, style: { backgroundColor: '#1e7e34' } }}
       >
+        <div style={{ marginBottom: 8 }}>
+          <Text strong>Người thuê:</Text> {user?.name || c.renterName}
+        </div>
         <div style={{ marginBottom: 8 }}>
           <Text strong>Hợp đồng:</Text> {c.contractCode}
         </div>

@@ -4,6 +4,7 @@ const renterController = require('../controllers/renterController');
 const adminController = require('../controllers/adminController');
 const authController = require('../controllers/authController');
 const fileController = require('../controllers/fileController');
+const landParcelController = require('../controllers/landParcelController');
 const { protect, authorize } = require('../middleware/auth');
 
 // Import Cloudinary utilities
@@ -71,20 +72,34 @@ router.use('/renter', protect, authorize('renter', 'admin'));
 // Dashboard: thông tin hợp đồng + giao dịch gần nhất
 router.get('/renter/dashboard', renterController.getDashboard);
 
-// Hợp đồng chi tiết + tiến trình thanh toán
-router.get('/renter/contract', renterController.getContractDetail);
+// Tìm kiếm hợp đồng
+router.get('/renter/search', renterController.searchContract);
 
-// Tài chính: tóm tắt + toàn bộ lịch sử giao dịch
+// Tải hợp đồng PDF
+router.get('/renter/contract/:contractCode/pdf', renterController.downloadContractPDF);
+
+// Hợp đồng hiện tại (cho trang contract detail)
+router.get('/renter/contract', renterController.getCurrentContract);
+
+// Tài chính và giao dịch
 router.get('/renter/finance', renterController.getFinance);
-
-// Thanh toán mới
 router.post('/renter/payment', renterController.createPayment);
 
-// Danh sách phản hồi
-router.get('/renter/feedback', renterController.getFeedbacks);
+// Danh sách hợp đồng
+router.get('/renter/contracts', renterController.getContracts);
 
-// Gửi phản hồi mới
+// Chi tiết hợp đồng
+router.get('/renter/contract/:id', renterController.getContractDetails);
+
+// Feedback
+router.get('/renter/feedback', renterController.getFeedback);
 router.post('/renter/feedback', renterController.createFeedback);
+
+// Land Requests (Đơn xin thuê đất)
+router.get('/renter/land-requests', renterController.getLandRequests);
+router.post('/renter/land-requests', renterController.createLandRequest);
+router.get('/renter/land-requests/:id', renterController.getLandRequest);
+router.put('/renter/land-requests/:id', renterController.updateLandRequest);
 
 // ======================================================
 //  ADMIN PORTAL ROUTES (Protected)
@@ -110,5 +125,35 @@ router.put('/admin/violations/:id', adminController.updateViolation);
 router.get('/admin/approvals', adminController.getApprovals);
 router.post('/admin/approvals/:id/approve', adminController.approveContract);
 router.post('/admin/approvals/:id/reject', adminController.rejectContract);
+
+// ======================================================
+//  LAND PARCEL MANAGEMENT ROUTES (Admin/Officer only)
+// ======================================================
+
+// Quản lý danh mục thửa đất
+router.get('/admin/land-parcels/statistics', landParcelController.getStatistics);
+router.get('/admin/land-parcels', landParcelController.getLandParcels);
+router.post('/admin/land-parcels', landParcelController.createLandParcel);
+router.get('/admin/land-parcels/:id', landParcelController.getLandParcel);
+router.put('/admin/land-parcels/:id', landParcelController.updateLandParcel);
+router.delete('/admin/land-parcels/:id', protect, authorize('admin'), landParcelController.deleteLandParcel);
+
+// Phê duyệt thửa đất (Admin only)
+router.put('/admin/land-parcels/:id/approve', protect, authorize('admin'), landParcelController.approveLandParcel);
+
+// Quản lý biến động đất đai
+router.post('/admin/land-parcels/:id/changes', landParcelController.addChangeHistory);
+
+// ======================================================
+//  LAND REQUEST MANAGEMENT ROUTES (Admin/Officer only)
+// ======================================================
+
+// Quản lý đơn xin thuê đất
+router.get('/admin/land-requests', adminController.getLandRequests);
+router.get('/admin/land-requests/:id', adminController.getLandRequest);
+router.put('/admin/land-requests/:id/status', adminController.updateLandRequestStatus);
+
+// Tạo hợp đồng từ đơn được phê duyệt (Admin only)
+router.post('/admin/land-requests/:id/create-contract', protect, authorize('admin'), adminController.createContractFromRequest);
 
 module.exports = router;

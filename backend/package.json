@@ -5,7 +5,13 @@
   "description": "Backend API for Land Management System - Hệ thống Quản lý Đất đai",
   "author": "Land Management Team",
   "license": "MIT",
-  "keywords": ["land-management", "nodejs", "express", "mongodb", "api"],
+  "keywords": [
+    "land-management",
+    "nodejs",
+    "express",
+    "mongodb",
+    "api"
+  ],
   "scripts": {
     "dev": "nodemon server.js",
     "start": "node server.js",
@@ -23,7 +29,8 @@
     "morgan": "^1.10.1",
     "multer": "^2.1.1",
     "multer-storage-cloudinary": "^4.0.0",
-    "nodemailer": "^8.0.5"
+    "nodemailer": "^8.0.5",
+    "pdfkit": "^0.18.0"
   },
   "devDependencies": {
     "nodemon": "^3.1.14"
