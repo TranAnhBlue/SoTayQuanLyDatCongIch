@@ -14,6 +14,7 @@ import {
   SearchOutlined
 } from '@ant-design/icons';
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 
 const { Header, Sider, Content } = Layout;
 const { Text } = Typography;
@@ -21,6 +22,7 @@ const { Text } = Typography;
 const AdminLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user, logout } = useAuth();
 
   const handleMenuClick = (e) => {
     navigate(e.key);
@@ -32,8 +34,7 @@ const AdminLayout = () => {
 
   const handleBottomMenuClick = (e) => {
     if (e.key === 'logout') {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
+      logout();
       navigate('/login');
     }
   };
@@ -82,10 +83,15 @@ const AdminLayout = () => {
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', borderLeft: '1px solid rgba(255,255,255,0.2)', paddingLeft: '24px', height: '32px' }}>
             <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-              <div style={{ fontSize: '13px', fontWeight: 'bold', color: 'white', lineHeight: '1.2' }}>Lãnh đạo UBND</div>
-              <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.7)', lineHeight: '1.2', marginTop: '2px' }}>Phê duyệt & Điều hành</div>
+              <div style={{ fontSize: '13px', fontWeight: 'bold', color: 'white', lineHeight: '1.2' }}>{user?.name || 'Lãnh đạo UBND'}</div>
+              <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.7)', lineHeight: '1.2', marginTop: '2px' }}>{user?.position || 'Phê duyệt & Điều hành'}</div>
             </div>
-            <Avatar src="https://api.dicebear.com/7.x/avataaars/svg?seed=Admin" size={32} />
+            <Avatar 
+              src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.name || 'Admin'}`} 
+              size={32} 
+              style={{ cursor: 'pointer' }}
+              onClick={() => navigate('/profile')}
+            />
           </div>
         </div>
       </Header>
@@ -121,7 +127,7 @@ const AdminLayout = () => {
                 { type: 'divider', style: { margin: '8px 0', backgroundColor: 'transparent' } },
                 { key: '/admin/approvals', icon: <CheckSquareOutlined />, label: 'Phê duyệt hồ sơ' },
                 { type: 'divider', style: { margin: '8px 0', backgroundColor: 'transparent' } },
-                { key: '/admin/sop', icon: <SafetyCertificateOutlined />, label: 'Kiểm soát SOP' },
+                { key: '/admin/sop-logs', icon: <SafetyCertificateOutlined />, label: 'Kiểm soát SOP' },
                 { type: 'divider', style: { margin: '8px 0', backgroundColor: 'transparent' } },
                 { key: '/admin/reports', icon: <BarChartOutlined />, label: 'Báo cáo thống kê' },
                 { type: 'divider', style: { margin: '8px 0', backgroundColor: 'transparent' } },

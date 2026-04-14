@@ -12,6 +12,7 @@ import {
   EnvironmentOutlined,
 } from '@ant-design/icons';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 
 const { Header, Content, Sider, Footer } = Layout;
 const { Text } = Typography;
@@ -19,6 +20,7 @@ const { Text } = Typography;
 const RenterLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user, logout } = useAuth();
 
   // Top navigation items (header)
   const headerItems = [
@@ -30,8 +32,7 @@ const RenterLayout = () => {
 
   const handleBottomMenuClick = (e) => {
     if (e.key === 'logout') {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
+      logout();
       navigate('/login');
     }
   };
@@ -62,7 +63,12 @@ const RenterLayout = () => {
         </div>
         <Space size="large">
           <BellOutlined style={{ color: 'white', fontSize: '18px', cursor: 'pointer' }} />
-          <Avatar icon={<UserOutlined />} style={{ backgroundColor: '#ffffff33', cursor: 'pointer' }} />
+          <Avatar 
+            icon={<UserOutlined />} 
+            src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.name || 'User'}`}
+            style={{ backgroundColor: '#ffffff33', cursor: 'pointer' }} 
+            onClick={() => navigate('/profile')}
+          />
         </Space>
       </Header>
 
@@ -71,10 +77,10 @@ const RenterLayout = () => {
         <Sider width={260} theme="light" style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 64px)' }}>
           <div style={{ padding: '24px 0', flex: 1, display: 'flex', flexDirection: 'column' }}>
             <div style={{ padding: '0 24px', display: 'flex', alignItems: 'center', marginBottom: '32px' }}>
-            <Avatar size={40} src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" />
+            <Avatar size={40} src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.name || 'User'}`} />
             <div style={{ marginLeft: '12px' }}>
-              <div style={{ fontWeight: 600, fontSize: '14px', lineHeight: '1.2' }}>Cổng thông tin Thuê đất</div>
-              <div style={{ fontSize: '10px', color: '#8c8c8c', textTransform: 'uppercase', marginTop: '4px' }}>HỆ THỐNG QUẢN LÝ QUỐC GIA</div>
+              <div style={{ fontWeight: 600, fontSize: '14px', lineHeight: '1.2' }}>{user?.name || 'Người thuê đất'}</div>
+              <div style={{ fontSize: '10px', color: '#8c8c8c', textTransform: 'uppercase', marginTop: '4px' }}>{user?.email || 'HỆ THỐNG QUẢN LÝ'}</div>
             </div>
           </div>
 

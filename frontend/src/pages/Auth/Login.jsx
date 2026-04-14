@@ -1,14 +1,44 @@
 import React, { useState } from 'react';
-import { Form, Input, Button, Typography, Checkbox, Row, Col, Space, message } from 'antd';
-import { UserOutlined, LockOutlined, ArrowRightOutlined, PhoneFilled, MailFilled } from '@ant-design/icons';
+import { Form, Input, Button, Typography, Checkbox, Row, Col, Space, message, Divider } from 'antd';
+import { UserOutlined, LockOutlined, ArrowRightOutlined, PhoneFilled, MailFilled, GoogleOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import { useNavigate, Link } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
 
 const { Title, Text } = Typography;
 
 const Login = () => {
     const [loading, setLoading] = useState(false);
+    const [googleLoading, setGoogleLoading] = useState(false);
     const navigate = useNavigate();
+    const { login } = useAuth();
+
+    // Xử lý Google OAuth callback
+    React.useEffect(() => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const token = urlParams.get('token');
+        const userStr = urlParams.get('user');
+        const error = urlParams.get('error');
+
+        if (error) {
+            message.error('Đăng nhập Google thất bại!');
+        } else if (token && userStr) {
+            try {
+                const user = JSON.parse(decodeURIComponent(userStr));
+                login(token, user);
+                message.success('Đăng nhập Google thành công!');
+                
+                // Redirect theo role
+                if (user.role === 'admin' || user.role === 'officer') {
+                    navigate('/admin/dashboard');
+                } else {
+                    navigate('/renter/dashboard');
+                }
+            } catch (err) {
+                message.error('Lỗi xử lý đăng nhập Google!');
+            }
+        }
+    }, [login, navigate]);
 
     const onFinish = async (values) => {
         setLoading(true);
@@ -16,11 +46,12 @@ const Login = () => {
             const response = await axios.post('http://localhost:5000/api/auth/login', values);
             const { token, user } = response.data;
 
-            localStorage.setItem('token', token);
-            localStorage.setItem('user', JSON.stringify(user));
+            // Sử dụng AuthContext để lưu session
+            login(token, user);
 
             message.success('Đăng nhập thành công!');
 
+            // Redirect theo role
             if (user.role === 'admin' || user.role === 'officer') {
                 navigate('/admin/dashboard');
             } else {
@@ -31,6 +62,18 @@ const Login = () => {
             message.error(error.response?.data?.message || 'Đăng nhập thất bại.');
         } finally {
             setLoading(false);
+        }
+    };
+
+    // Xử lý đăng nhập Google
+    const handleGoogleLogin = async () => {
+        setGoogleLoading(true);
+        try {
+            // Redirect đến Google OAuth
+            window.location.href = 'http://localhost:5000/api/auth/google';
+        } catch (error) {
+            message.error('Đăng nhập Google thất bại!');
+            setGoogleLoading(false);
         }
     };
 
@@ -229,6 +272,35 @@ const Login = () => {
                                 }}
                             >
                                 Truy cập hệ thống <ArrowRightOutlined style={{ marginLeft: '8px' }} />
+                            </Button>
+                        </Form.Item>
+
+                        {/* Divider */}
+                        <Divider style={{ margin: '24px 0', color: '#8c9ea7' }}>
+                            <span style={{ fontSize: '12px', color: '#8c9ea7' }}>HOẶC</span>
+                        </Divider>
+
+                        {/* Google Login Button */}
+                        <Form.Item style={{ marginBottom: '24px' }}>
+                            <Button
+                                onClick={handleGoogleLogin}
+                                loading={googleLoading}
+                                block
+                                style={{
+                                    backgroundColor: 'white',
+                                    border: '2px solid #e0e0e0',
+                                    height: '55px',
+                                    borderRadius: '6px',
+                                    fontSize: '15px',
+                                    fontWeight: 'bold',
+                                    display: 'flex',
+                                    justifyContent: 'center',
+                                    alignItems: 'center',
+                                    color: '#333'
+                                }}
+                            >
+                                <GoogleOutlined style={{ marginRight: '8px', color: '#4285f4' }} />
+                                Đăng nhập với Google
                             </Button>
                         </Form.Item>
 

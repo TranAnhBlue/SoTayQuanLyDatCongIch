@@ -68,7 +68,7 @@ const ForgotPassword = () => {
                 </Title>
                 
                 <Text style={{ color: '#64748b', fontSize: '13.5px', marginBottom: '35px', textAlign: 'center', display: 'block', lineHeight: '1.6', maxWidth: '340px' }}>
-                    Vui lòng nhập Email công vụ đã được cấp để nhận liên kết khôi phục tài khoản.
+                    Vui lòng nhập Email công vụ đã được cấp để nhận mã OTP xác thực. Mã sẽ được gửi tự động đến hộp thư của bạn.
                 </Text>
 
                 <Form
@@ -145,7 +145,7 @@ const ForgotPassword = () => {
                                 alignItems: 'center'
                             }}
                         >
-                            Gửi liên kết khôi phục <ArrowRightOutlined style={{ marginLeft: '12px' }} />
+                            Gửi mã OTP xác thực <ArrowRightOutlined style={{ marginLeft: '12px' }} />
                         </Button>
                     </Form.Item>
 

@@ -27,6 +27,10 @@ const userSchema = new mongoose.Schema({
         type: String,
         required: [true, 'Vui lòng nhập chức vụ']
     },
+    avatar: {
+        type: String,
+        default: null
+    },
     password: {
         type: String,
         required: [true, 'Vui lòng nhập mật khẩu'],

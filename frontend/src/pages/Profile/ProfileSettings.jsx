@@ -1,0 +1,635 @@
+import React, { useState } from 'react';
+import { 
+  Row, 
+  Col, 
+  Typography, 
+  Card, 
+  Form, 
+  Input, 
+  Button, 
+  Avatar, 
+  Space, 
+  Divider,
+  Progress,
+  message,
+  Badge,
+  Upload,
+  Modal
+} from 'antd';
+import { 
+  UserOutlined, 
+  EditOutlined, 
+  LockOutlined,
+  EyeInvisibleOutlined,
+  EyeTwoTone,
+  CheckCircleOutlined,
+  ClockCircleOutlined,
+  SafetyCertificateOutlined,
+  ArrowLeftOutlined,
+  CameraOutlined,
+  UploadOutlined
+} from '@ant-design/icons';
+import { useAuth } from '../../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
+
+const { Title, Text } = Typography;
+
+const ProfileSettings = () => {
+  const { user, updateUser } = useAuth();
+  const navigate = useNavigate();
+  const [editForm] = Form.useForm();
+  const [passwordForm] = Form.useForm();
+  const [editLoading, setEditLoading] = useState(false);
+  const [passwordLoading, setPasswordLoading] = useState(false);
+  const [passwordStrength, setPasswordStrength] = useState(0);
+  const [avatarModalVisible, setAvatarModalVisible] = useState(false);
+  const [uploading, setUploading] = useState(false);
+
+  // Hàm quay về dashboard theo role
+  const handleGoBack = () => {
+    if (user?.role === 'admin' || user?.role === 'officer') {
+      navigate('/admin/dashboard');
+    } else {
+      navigate('/renter/dashboard');
+    }
+  };
+
+  // Xử lý upload avatar
+  const handleAvatarUpload = async (file) => {
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('avatar', file);
+      
+      const response = await axios.post('/api/auth/upload-avatar', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      
+      // Cập nhật user với avatar mới
+      updateUser({ avatar: response.data.avatarUrl });
+      message.success('Cập nhật avatar thành công!');
+      setAvatarModalVisible(false);
+    } catch (error) {
+      message.error('Upload avatar thất bại!');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  // Props cho Upload component
+  const uploadProps = {
+    name: 'avatar',
+    listType: 'picture-card',
+    className: 'avatar-uploader',
+    showUploadList: false,
+    beforeUpload: (file) => {
+      const isJpgOrPng = file.type === 'image/jpeg' || file.type === 'image/png';
+      if (!isJpgOrPng) {
+        message.error('Chỉ hỗ trợ file JPG/PNG!');
+        return false;
+      }
+      const isLt2M = file.size / 1024 / 1024 < 2;
+      if (!isLt2M) {
+        message.error('Kích thước file phải nhỏ hơn 2MB!');
+        return false;
+      }
+      handleAvatarUpload(file);
+      return false; // Prevent default upload
+    },
+  };
+  const handleUpdateProfile = async (values) => {
+    setEditLoading(true);
+    try {
+      const response = await axios.put('/api/auth/profile', values);
+      
+      // Cập nhật user trong context
+      updateUser(response.data.user);
+      message.success('Cập nhật thông tin thành công!');
+    } catch (error) {
+      message.error(error.response?.data?.message || 'Cập nhật thông tin thất bại!');
+    } finally {
+      setEditLoading(false);
+    }
+  };
+
+  // Xử lý đổi mật khẩu
+  const handleChangePassword = async (values) => {
+    setPasswordLoading(true);
+    try {
+      await axios.put('/api/auth/change-password', {
+        currentPassword: values.currentPassword,
+        newPassword: values.newPassword
+      });
+      
+      message.success('Đổi mật khẩu thành công!');
+      passwordForm.resetFields();
+    } catch (error) {
+      message.error(error.response?.data?.message || 'Đổi mật khẩu thất bại!');
+    } finally {
+      setPasswordLoading(false);
+    }
+  };
+
+  // Kiểm tra độ mạnh mật khẩu
+  const checkPasswordStrength = (password) => {
+    if (!password) {
+      setPasswordStrength(0);
+      return;
+    }
+
+    let strength = 0;
+    if (password.length >= 12) strength += 25;
+    if (/[A-Z]/.test(password)) strength += 25;
+    if (/[0-9]/.test(password)) strength += 25;
+    if (/[!@#$%^&*]/.test(password)) strength += 25;
+
+    setPasswordStrength(strength);
+  };
+
+  const getPasswordStrengthColor = () => {
+    if (passwordStrength < 50) return '#ff4d4f';
+    if (passwordStrength < 75) return '#faad14';
+    return '#52c41a';
+  };
+
+  const getPasswordStrengthText = () => {
+    if (passwordStrength < 25) return 'Yếu';
+    if (passwordStrength < 50) return 'Trung bình';
+    if (passwordStrength < 75) return 'Mạnh';
+    return 'Rất mạnh';
+  };
+
+  return (
+    <div style={{ padding: '32px' }}>
+      {/* Header với nút quay về */}
+      <div style={{ marginBottom: '32px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', marginBottom: '16px' }}>
+          <Button 
+            type="text" 
+            icon={<ArrowLeftOutlined />} 
+            onClick={handleGoBack}
+            style={{ marginRight: '16px', color: '#002e42' }}
+          >
+            Quay về
+          </Button>
+          <Title level={2} style={{ margin: 0, color: '#002e42', fontWeight: 800 }}>
+            Chỉnh sửa Hồ sơ
+          </Title>
+        </div>
+        <Text style={{ fontSize: '14px', color: '#595959' }}>
+          Cập nhật thông tin định danh và thông tin cơ bản của bạn trong hệ thống quản lý đất đai quốc gia.
+        </Text>
+      </div>
+
+      <Row gutter={[32, 32]}>
+        {/* Left Column - Profile Info */}
+        <Col span={14}>
+          <Card 
+            title={
+              <Space>
+                <UserOutlined />
+                <span>Thông tin chi tiết</span>
+              </Space>
+            }
+            style={{ marginBottom: 24 }}
+          >
+            <Form
+              form={editForm}
+              layout="vertical"
+              initialValues={{
+                name: user?.name || '',
+                email: user?.email || '',
+                phone: user?.phone || '',
+                department: user?.department || '',
+                position: user?.position || '',
+                notes: 'Thêm mô tả về phạm vi quản lý hoặc ghi chú nghiệp vụ...'
+              }}
+              onFinish={handleUpdateProfile}
+            >
+              <Row gutter={16}>
+                <Col span={12}>
+                  <Form.Item
+                    label={<Text strong style={{ fontSize: '12px', color: '#8c8c8c' }}>HỌ VÀ TÊN</Text>}
+                    name="name"
+                    rules={[{ required: true, message: 'Vui lòng nhập họ và tên!' }]}
+                  >
+                    <Input 
+                      placeholder="Nguyễn Văn An"
+                      style={{ backgroundColor: '#f5f5f5', border: 'none', borderRadius: '6px', height: '40px' }}
+                    />
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item
+                    label={<Text strong style={{ fontSize: '12px', color: '#8c8c8c' }}>CHỨC VỤ</Text>}
+                    name="position"
+                    rules={[{ required: true, message: 'Vui lòng nhập chức vụ!' }]}
+                  >
+                    <Input 
+                      placeholder="Chuyên viên cao cấp"
+                      style={{ backgroundColor: '#f5f5f5', border: 'none', borderRadius: '6px', height: '40px' }}
+                    />
+                  </Form.Item>
+                </Col>
+              </Row>
+
+              <Row gutter={16}>
+                <Col span={12}>
+                  <Form.Item
+                    label={<Text strong style={{ fontSize: '12px', color: '#8c8c8c' }}>CƠ QUAN / PHÒNG BAN</Text>}
+                    name="department"
+                    rules={[{ required: true, message: 'Vui lòng nhập cơ quan!' }]}
+                  >
+                    <Input 
+                      placeholder="Văn phòng Đăng ký Đất đai"
+                      style={{ backgroundColor: '#f5f5f5', border: 'none', borderRadius: '6px', height: '40px' }}
+                    />
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item
+                    label={<Text strong style={{ fontSize: '12px', color: '#8c8c8c' }}>SỐ ĐIỆN THOẠI</Text>}
+                    name="phone"
+                    rules={[{ required: true, message: 'Vui lòng nhập số điện thoại!' }]}
+                  >
+                    <Input 
+                      placeholder="090 123 4567"
+                      style={{ backgroundColor: '#f5f5f5', border: 'none', borderRadius: '6px', height: '40px' }}
+                    />
+                  </Form.Item>
+                </Col>
+              </Row>
+
+              <Form.Item
+                label={<Text strong style={{ fontSize: '12px', color: '#8c8c8c' }}>ĐỊA CHỈ EMAIL</Text>}
+                name="email"
+                rules={[
+                  { required: true, message: 'Vui lòng nhập email!' },
+                  { type: 'email', message: 'Email không hợp lệ!' }
+                ]}
+              >
+                <Input 
+                  placeholder="an.nguyen@datvietcore.gov.vn"
+                  style={{ backgroundColor: '#f5f5f5', border: 'none', borderRadius: '6px', height: '40px' }}
+                />
+              </Form.Item>
+
+              <Form.Item
+                label={<Text strong style={{ fontSize: '12px', color: '#8c8c8c' }}>GHI CHÚ NGHIỆP VỤ</Text>}
+                name="notes"
+              >
+                <Input.TextArea 
+                  rows={3}
+                  placeholder="Thêm mô tả về phạm vi quản lý hoặc ghi chú nghiệp vụ..."
+                  style={{ backgroundColor: '#f5f5f5', border: 'none', borderRadius: '6px' }}
+                />
+              </Form.Item>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '24px' }}>
+                <Button 
+                  size="large"
+                  style={{ borderRadius: '6px', minWidth: '100px' }}
+                >
+                  Hủy bỏ
+                </Button>
+                <Button 
+                  type="primary" 
+                  htmlType="submit"
+                  loading={editLoading}
+                  size="large"
+                  style={{ 
+                    backgroundColor: '#1e7e34', 
+                    borderRadius: '6px', 
+                    minWidth: '120px',
+                    fontWeight: 600
+                  }}
+                >
+                  Lưu Thay Đổi
+                </Button>
+              </div>
+            </Form>
+          </Card>
+        </Col>
+
+        {/* Right Column - Avatar & Security */}
+        <Col span={10}>
+          {/* Avatar Section với khả năng edit */}
+          <Card style={{ marginBottom: 24, textAlign: 'center' }}>
+            <div style={{ position: 'relative', display: 'inline-block', marginBottom: '16px' }}>
+              <Avatar 
+                size={120} 
+                src={user?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.name || 'User'}`}
+                style={{ border: '4px solid #f0f0f0' }}
+              />
+              <Badge 
+                count={<CameraOutlined style={{ color: 'white', fontSize: '12px' }} />}
+                style={{ 
+                  backgroundColor: '#1e7e34',
+                  position: 'absolute',
+                  bottom: 8,
+                  right: 8,
+                  width: 28,
+                  height: 28,
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer'
+                }}
+                onClick={() => setAvatarModalVisible(true)}
+              />
+            </div>
+            <Title level={4} style={{ margin: '8px 0 4px 0', color: '#002e42' }}>
+              {user?.name || 'Người dùng'}
+            </Title>
+            <Text style={{ color: '#1e7e34', fontWeight: 600, textTransform: 'uppercase', fontSize: '12px' }}>
+              {user?.position || 'CHỨC VỤ'}
+            </Text>
+            
+            <Divider />
+            
+            <div style={{ textAlign: 'left' }}>
+              <div style={{ marginBottom: '12px' }}>
+                <Text style={{ fontSize: '12px', color: '#8c8c8c' }}>Trạng thái hồ sơ</Text>
+                <div style={{ marginTop: '4px' }}>
+                  <Badge status="success" />
+                  <Text style={{ fontSize: '13px', fontWeight: 500 }}>HOÀN TẤT</Text>
+                </div>
+              </div>
+              
+              <div>
+                <Text style={{ fontSize: '12px', color: '#8c8c8c' }}>Ngày gia nhập</Text>
+                <div style={{ marginTop: '4px' }}>
+                  <Text style={{ fontSize: '13px', fontWeight: 500 }}>
+                    {user?.createdAt ? new Date(user.createdAt).toLocaleDateString('vi-VN') : '12/05/2018'}
+                  </Text>
+                </div>
+              </div>
+            </div>
+          </Card>
+
+          {/* Security Section */}
+          <Card 
+            title={
+              <Space>
+                <LockOutlined />
+                <span>Bảo mật tài khoản</span>
+              </Space>
+            }
+            style={{ backgroundColor: '#002e42', color: 'white' }}
+            headStyle={{ backgroundColor: '#002e42', color: 'white', borderBottom: '1px solid rgba(255,255,255,0.1)' }}
+            bodyStyle={{ backgroundColor: '#002e42' }}
+          >
+            <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: '13px', display: 'block', marginBottom: '16px' }}>
+              Tài khoản của bạn được bảo mật bằng phương pháp xác thực hai yếu tố (2FA).
+            </Text>
+            
+            <Button 
+              block
+              style={{ 
+                backgroundColor: 'rgba(255,255,255,0.1)', 
+                border: '1px solid rgba(255,255,255,0.2)',
+                color: 'white',
+                borderRadius: '6px',
+                height: '40px',
+                fontWeight: 500
+              }}
+              onClick={() => {
+                // Scroll to password section or open modal
+                document.getElementById('password-section')?.scrollIntoView({ behavior: 'smooth' });
+              }}
+            >
+              Thay đổi mật khẩu
+            </Button>
+          </Card>
+        </Col>
+      </Row>
+
+      {/* Password Change Section */}
+      <Card 
+        id="password-section"
+        title={
+          <div>
+            <Title level={3} style={{ margin: 0, color: '#002e42' }}>
+              Bảo mật hệ thống <span style={{ color: '#1e7e34' }}>Đất Việt Core</span>
+            </Title>
+            <Text style={{ fontSize: '14px', color: '#595959' }}>
+              Cập nhật mật khẩu định kỳ để bảo vệ dữ liệu đất đai quốc gia và thông tin cá nhân của quản trị viên.
+            </Text>
+          </div>
+        }
+        style={{ marginTop: 32 }}
+      >
+        <Row gutter={32}>
+          <Col span={14}>
+            <Form
+              form={passwordForm}
+              layout="vertical"
+              onFinish={handleChangePassword}
+            >
+              <Form.Item
+                label={<Text strong style={{ fontSize: '12px', color: '#8c8c8c' }}>MẬT KHẨU HIỆN TẠI</Text>}
+                name="currentPassword"
+                rules={[{ required: true, message: 'Vui lòng nhập mật khẩu hiện tại!' }]}
+              >
+                <Input.Password 
+                  placeholder="••••••••••"
+                  iconRender={(visible) => (visible ? <EyeTwoTone /> : <EyeInvisibleOutlined />)}
+                  style={{ backgroundColor: '#f5f5f5', border: 'none', borderRadius: '6px', height: '40px' }}
+                />
+              </Form.Item>
+
+              <Form.Item
+                label={<Text strong style={{ fontSize: '12px', color: '#8c8c8c' }}>MẬT KHẨU MỚI</Text>}
+                name="newPassword"
+                rules={[
+                  { required: true, message: 'Vui lòng nhập mật khẩu mới!' },
+                  { min: 8, message: 'Mật khẩu phải có ít nhất 8 ký tự!' }
+                ]}
+              >
+                <Input.Password 
+                  placeholder="Nhập mật khẩu mới"
+                  iconRender={(visible) => (visible ? <EyeTwoTone /> : <EyeInvisibleOutlined />)}
+                  style={{ backgroundColor: '#f5f5f5', border: 'none', borderRadius: '6px', height: '40px' }}
+                  onChange={(e) => checkPasswordStrength(e.target.value)}
+                />
+              </Form.Item>
+
+              <div style={{ marginBottom: '16px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                  <Text style={{ fontSize: '12px', color: '#8c8c8c' }}>Độ mạnh mật khẩu</Text>
+                  <Text style={{ fontSize: '12px', color: getPasswordStrengthColor(), fontWeight: 600 }}>
+                    {getPasswordStrengthText()}
+                  </Text>
+                </div>
+                <Progress 
+                  percent={passwordStrength} 
+                  strokeColor={getPasswordStrengthColor()}
+                  showInfo={false}
+                  size="small"
+                />
+              </div>
+
+              <Form.Item
+                label={<Text strong style={{ fontSize: '12px', color: '#8c8c8c' }}>XÁC NHẬN MẬT KHẨU MỚI</Text>}
+                name="confirmPassword"
+                dependencies={['newPassword']}
+                rules={[
+                  { required: true, message: 'Vui lòng xác nhận mật khẩu!' },
+                  ({ getFieldValue }) => ({
+                    validator(_, value) {
+                      if (!value || getFieldValue('newPassword') === value) {
+                        return Promise.resolve();
+                      }
+                      return Promise.reject(new Error('Mật khẩu xác nhận không khớp!'));
+                    },
+                  }),
+                ]}
+              >
+                <Input.Password 
+                  placeholder="Nhập lại mật khẩu mới"
+                  iconRender={(visible) => (visible ? <EyeTwoTone /> : <EyeInvisibleOutlined />)}
+                  style={{ backgroundColor: '#f5f5f5', border: 'none', borderRadius: '6px', height: '40px' }}
+                />
+              </Form.Item>
+
+              <Form.Item style={{ marginTop: '32px' }}>
+                <Button 
+                  type="primary" 
+                  htmlType="submit"
+                  loading={passwordLoading}
+                  size="large"
+                  block
+                  style={{ 
+                    backgroundColor: '#1e7e34', 
+                    borderRadius: '6px', 
+                    height: '48px',
+                    fontWeight: 600,
+                    fontSize: '15px'
+                  }}
+                  icon={<SafetyCertificateOutlined />}
+                >
+                  Cập nhật mật khẩu
+                </Button>
+              </Form.Item>
+            </Form>
+          </Col>
+
+          <Col span={10}>
+            {/* Security Guidelines */}
+            <Card 
+              title={
+                <Space>
+                  <SafetyCertificateOutlined style={{ color: '#1e7e34' }} />
+                  <span>Quy định bảo mật</span>
+                </Space>
+              }
+              style={{ backgroundColor: '#f8fffe', border: '1px solid #d9f7be' }}
+            >
+              <Space direction="vertical" size={12} style={{ width: '100%' }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+                  <CheckCircleOutlined style={{ color: '#1e7e34', marginTop: '2px' }} />
+                  <Text style={{ fontSize: '13px' }}>Tối thiểu 12 ký tự trở lên.</Text>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+                  <CheckCircleOutlined style={{ color: '#1e7e34', marginTop: '2px' }} />
+                  <Text style={{ fontSize: '13px' }}>Bao gồm ít nhất một chữ hoa (A-Z).</Text>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+                  <ClockCircleOutlined style={{ color: '#faad14', marginTop: '2px' }} />
+                  <Text style={{ fontSize: '13px' }}>Bao gồm ít nhất một chữ số (0-9).</Text>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+                  <ClockCircleOutlined style={{ color: '#faad14', marginTop: '2px' }} />
+                  <Text style={{ fontSize: '13px' }}>Sử dụng ký tự đặc biệt (!@#$%^&*).</Text>
+                </div>
+              </Space>
+            </Card>
+
+            {/* Last Update Info */}
+            <div style={{ 
+              backgroundColor: '#e6f7ff', 
+              border: '1px solid #91d5ff',
+              borderRadius: '8px',
+              padding: '16px',
+              marginTop: '16px'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                <ClockCircleOutlined style={{ color: '#1890ff' }} />
+                <Text strong style={{ fontSize: '13px', color: '#1890ff' }}>LẦN ĐỔI GẦN NHẤT</Text>
+              </div>
+              <Text style={{ fontSize: '14px', fontWeight: 600 }}>15 tháng 08, 2023</Text>
+            </div>
+
+            {/* Security Quote */}
+            <div style={{ 
+              backgroundColor: '#f6f8fa', 
+              borderRadius: '8px',
+              padding: '16px',
+              marginTop: '16px',
+              position: 'relative',
+              overflow: 'hidden'
+            }}>
+              <div style={{
+                position: 'absolute',
+                top: 0,
+                right: 0,
+                width: '60px',
+                height: '60px',
+                backgroundColor: 'rgba(30, 126, 52, 0.1)',
+                borderRadius: '50%',
+                transform: 'translate(20px, -20px)'
+              }} />
+              <Text style={{ 
+                fontSize: '13px', 
+                fontStyle: 'italic', 
+                color: '#595959',
+                position: 'relative',
+                zIndex: 1
+              }}>
+                "An toàn thông tin là nền tảng của sự phát triển bền vững."
+              </Text>
+            </div>
+          </Col>
+        </Row>
+      </Card>
+
+      {/* Modal Upload Avatar */}
+      <Modal
+        title="Cập nhật Avatar"
+        open={avatarModalVisible}
+        onCancel={() => setAvatarModalVisible(false)}
+        footer={null}
+        width={400}
+      >
+        <div style={{ textAlign: 'center', padding: '20px 0' }}>
+          <Avatar 
+            size={120} 
+            src={user?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.name || 'User'}`}
+            style={{ marginBottom: '20px' }}
+          />
+          <div>
+            <Upload {...uploadProps}>
+              <Button 
+                icon={<UploadOutlined />} 
+                loading={uploading}
+                type="primary"
+                style={{ backgroundColor: '#1e7e34' }}
+              >
+                {uploading ? 'Đang tải lên...' : 'Chọn ảnh mới'}
+              </Button>
+            </Upload>
+            <div style={{ marginTop: '12px', color: '#8c8c8c', fontSize: '12px' }}>
+              Hỗ trợ: JPG, PNG. Tối đa 2MB
+            </div>
+          </div>
+        </div>
+      </Modal>
+    </div>
+  );
+};
+
+export default ProfileSettings;

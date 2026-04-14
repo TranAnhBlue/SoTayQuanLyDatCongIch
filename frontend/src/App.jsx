@@ -15,15 +15,17 @@ import Register from './pages/Auth/Register';
 import ForgotPassword from './pages/Auth/ForgotPassword';
 import VerifyOTP from './pages/Auth/VerifyOTP';
 import ResetPassword from './pages/Auth/ResetPassword';
+import ProfileSettings from './pages/Profile/ProfileSettings';
 import ProtectedRoute from './components/Auth/ProtectedRoute';
 import AdminLayout from './layouts/AdminLayout';
 import RenterLayout from './layouts/RenterLayout';
+import { getToken } from './utils/auth';
 import axios from 'axios';
 import './App.css';
 
 // Add a request interceptor
 axios.interceptors.request.use(function (config) {
-    const token = localStorage.getItem('token');
+    const token = getToken();
     if (token) {
         config.headers.Authorization = `Bearer ${token}`;
     }
@@ -62,6 +64,16 @@ function App() {
           <Route path="/verify-otp" element={<VerifyOTP />} />
           <Route path="/reset-password" element={<ResetPassword />} />
 
+          {/* Profile Settings - Available for all authenticated users */}
+          <Route 
+            path="/profile" 
+            element={
+              <ProtectedRoute allowedRoles={['admin', 'officer', 'renter']}>
+                <ProfileSettings />
+              </ProtectedRoute>
+            } 
+          />
+
           {/* Renter Routes */}
           <Route 
             path="/renter" 
@@ -88,9 +100,9 @@ function App() {
           >
             <Route path="dashboard" element={<AdminDashboard />} />
             <Route path="approvals" element={<AdminApprovals />} />
+            <Route path="sop-logs" element={<AdminSOPLog />} />
             <Route path="reports" element={<AdminReport />} />
             <Route path="heatmap" element={<AdminHeatmap />} />
-            <Route path="sop-logs" element={<AdminSOPLog />} />
           </Route>
 
           {/* Redirects */}

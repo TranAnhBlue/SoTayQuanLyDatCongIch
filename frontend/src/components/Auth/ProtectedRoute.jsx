@@ -1,22 +1,37 @@
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
+import { Spin } from 'antd';
 
 const ProtectedRoute = ({ children, allowedRoles }) => {
     const location = useLocation();
-    
-    // Check for token in localStorage
-    const token = localStorage.getItem('token');
-    const userStr = localStorage.getItem('user');
-    const user = userStr ? JSON.parse(userStr) : null;
+    const { isAuthenticated, user, loading } = useAuth();
 
-    if (!token || !user) {
-        // Redirect to login if not authenticated
+    // Hiển thị loading khi đang kiểm tra session
+    if (loading) {
+        return (
+            <div style={{ 
+                display: 'flex', 
+                justifyContent: 'center', 
+                alignItems: 'center', 
+                minHeight: '100vh' 
+            }}>
+                <Spin size="large" tip="Đang tải..." />
+            </div>
+        );
+    }
+
+    // Chưa đăng nhập -> redirect về login
+    if (!isAuthenticated || !user) {
         return <Navigate to="/login" state={{ from: location }} replace />;
     }
 
+    // Kiểm tra quyền truy cập theo role
     if (allowedRoles && !allowedRoles.includes(user.role)) {
-        // Redirect to unauthorized page or dashboard if role not allowed
-        const fallback = user.role === 'admin' ? '/admin/dashboard' : '/renter/dashboard';
+        // Redirect về dashboard phù hợp với role
+        const fallback = user.role === 'admin' || user.role === 'officer' 
+            ? '/admin/dashboard' 
+            : '/renter/dashboard';
         return <Navigate to={fallback} replace />;
     }
 

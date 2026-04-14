@@ -6,10 +6,26 @@ import axios from 'axios';
 
 const { Title, Text } = Typography;
 
+// Add CSS for spinner animation
+const spinnerStyle = `
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+`;
+
+// Inject CSS
+if (typeof document !== 'undefined') {
+    const style = document.createElement('style');
+    style.textContent = spinnerStyle;
+    document.head.appendChild(style);
+}
+
 const VerifyOTP = () => {
     const [loading, setLoading] = useState(false);
     const [otp, setOtp] = useState(['', '', '', '', '', '']);
     const [timer, setTimer] = useState(119); // 01:59 (2 minutes)
+    const [isComplete, setIsComplete] = useState(false);
     const inputRefs = useRef([]);
     const navigate = useNavigate();
     const email = localStorage.getItem('resetEmail') || 'ca***@ubnd.gov.vn';
@@ -38,6 +54,35 @@ const VerifyOTP = () => {
         if (value && index < 5) {
             inputRefs.current[index + 1].focus();
         }
+
+        // Auto submit when all 6 digits are entered
+        const updatedOtp = [...newOtp];
+        if (updatedOtp.every(digit => digit !== '') && updatedOtp.join('').length === 6) {
+            setIsComplete(true);
+            const completeOtp = updatedOtp.join('');
+            setTimeout(() => {
+                onFinish(completeOtp); // Pass the complete OTP directly
+            }, 300); // Slightly longer delay for better UX
+        } else {
+            setIsComplete(false);
+        }
+    };
+
+    const handlePaste = (e) => {
+        e.preventDefault();
+        const pastedData = e.clipboardData.getData('text');
+        const digits = pastedData.replace(/\D/g, '').slice(0, 6);
+        
+        if (digits.length === 6) {
+            const newOtp = digits.split('');
+            setOtp(newOtp);
+            setIsComplete(true);
+            
+            // Auto submit after paste
+            setTimeout(() => {
+                onFinish(digits); // Pass the pasted digits directly
+            }, 300);
+        }
     };
 
     const handleKeyDown = (e, index) => {
@@ -46,8 +91,8 @@ const VerifyOTP = () => {
         }
     };
 
-    const onFinish = async () => {
-        const otpString = otp.join('');
+    const onFinish = async (autoSubmittedOtp = null) => {
+        const otpString = autoSubmittedOtp || otp.join('');
         if (otpString.length < 6) {
             return message.error('Vui lòng nhập đầy đủ mã OTP 6 chữ số');
         }
@@ -160,6 +205,32 @@ const VerifyOTP = () => {
                     <Text style={{ color: '#64748b', fontSize: '13px', lineHeight: '1.5', marginBottom: '30px', display: 'block' }}>
                         Mã xác thực gồm 6 chữ số đã được gửi đến email <br/>
                         <strong style={{ color: '#01263f' }}>{email}</strong>. Vui lòng kiểm tra hộp thư đến hoặc thư rác.
+                        {isComplete && (
+                            <div style={{ 
+                                marginTop: '10px', 
+                                padding: '8px 12px', 
+                                backgroundColor: '#f0f9f0', 
+                                border: '1px solid #1b742a', 
+                                borderRadius: '6px',
+                                color: '#1b742a',
+                                fontSize: '12px',
+                                fontWeight: 600,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '8px'
+                            }}>
+                                <div style={{
+                                    width: '12px',
+                                    height: '12px',
+                                    border: '2px solid #1b742a',
+                                    borderTop: '2px solid transparent',
+                                    borderRadius: '50%',
+                                    animation: 'spin 1s linear infinite'
+                                }}></div>
+                                ✓ Mã OTP đã được nhập đầy đủ. Đang xác thực...
+                            </div>
+                        )}
                     </Text>
 
                     {/* OTP Inputs */}
@@ -173,12 +244,13 @@ const VerifyOTP = () => {
                                 value={digit}
                                 onChange={(e) => handleOtpChange(e.target.value, index)}
                                 onKeyDown={(e) => handleKeyDown(e, index)}
+                                onPaste={index === 0 ? handlePaste : undefined}
                                 style={{
                                     width: '100%',
                                     height: '65px',
                                     borderRadius: '10px',
-                                    border: '2px solid transparent',
-                                    backgroundColor: '#eaeeef',
+                                    border: `2px solid ${isComplete ? '#1b742a' : 'transparent'}`,
+                                    backgroundColor: isComplete ? '#f0f9f0' : '#eaeeef',
                                     textAlign: 'center',
                                     fontSize: '26px',
                                     fontWeight: 800,
@@ -211,7 +283,7 @@ const VerifyOTP = () => {
 
                     <Button 
                         type="primary" 
-                        onClick={onFinish}
+                        onClick={() => onFinish()}
                         loading={loading}
                         block
                         style={{ 
