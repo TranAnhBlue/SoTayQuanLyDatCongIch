@@ -37,8 +37,12 @@ const Login = () => {
                     
                     // Redirect theo role
                     setTimeout(() => {
-                        if (user.role === 'admin' || user.role === 'officer') {
+                        if (user.role === 'admin') {
                             navigate('/admin/dashboard');
+                        } else if (user.role === 'officer') {
+                            navigate('/officer/dashboard');
+                        } else if (user.role === 'finance') {
+                            navigate('/finance/dashboard');
                         } else {
                             navigate('/renter/dashboard');
                         }
@@ -66,8 +70,12 @@ const Login = () => {
             message.success('Đăng nhập thành công!');
 
             // Redirect theo role
-            if (user.role === 'admin' || user.role === 'officer') {
+            if (user.role === 'admin') {
                 navigate('/admin/dashboard');
+            } else if (user.role === 'officer') {
+                navigate('/officer/dashboard');
+            } else if (user.role === 'finance') {
+                navigate('/finance/dashboard');
             } else {
                 navigate('/renter/dashboard');
             }
@@ -128,8 +136,12 @@ const Login = () => {
                         console.log('✅ AuthContext login successful');
 
                         // Redirect based on role with multiple fallback methods
-                        const targetUrl = (user.role === 'admin' || user.role === 'officer') 
-                            ? '/admin/dashboard' 
+                        const targetUrl = user.role === 'admin' 
+                            ? '/admin/dashboard'
+                            : user.role === 'officer'
+                            ? '/officer/dashboard'
+                            : user.role === 'finance'
+                            ? '/finance/dashboard'
                             : '/renter/dashboard';
                         
                         console.log('🔄 Redirecting to:', targetUrl);

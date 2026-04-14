@@ -26,9 +26,17 @@ import VerifyOTP from './pages/Auth/VerifyOTP';
 import ResetPassword from './pages/Auth/ResetPassword';
 import ProfileSettings from './pages/Profile/ProfileSettings';
 import FileUploadTest from './pages/Test/FileUploadTest';
+import OfficerDashboard from './pages/Officer/OfficerDashboard';
+import LandParcelDetail from './pages/Officer/LandParcelDetail';
+import FinanceDashboard from './pages/Finance/FinanceDashboard';
+import DocumentManagement from './pages/Finance/DocumentManagement';
+import DebtManagement from './pages/Finance/DebtManagement';
+import FinancialReport from './pages/Finance/FinancialReport';
 import ProtectedRoute from './components/Auth/ProtectedRoute';
 import AdminLayout from './layouts/AdminLayout';
 import RenterLayout from './layouts/RenterLayout';
+import OfficerLayout from './layouts/OfficerLayout';
+import FinanceLayout from './layouts/FinanceLayout';
 import { getToken } from './utils/auth';
 import axios from 'axios';
 import './App.css';
@@ -78,7 +86,7 @@ function App() {
           <Route 
             path="/profile" 
             element={
-              <ProtectedRoute allowedRoles={['admin', 'officer', 'renter']}>
+              <ProtectedRoute allowedRoles={['admin', 'officer', 'renter', 'finance']}>
                 <ProfileSettings />
               </ProtectedRoute>
             } 
@@ -88,7 +96,7 @@ function App() {
           <Route 
             path="/test/file-upload" 
             element={
-              <ProtectedRoute allowedRoles={['admin', 'officer', 'renter']}>
+              <ProtectedRoute allowedRoles={['admin', 'officer', 'renter', 'finance']}>
                 <FileUploadTest />
               </ProtectedRoute>
             } 
@@ -132,6 +140,37 @@ function App() {
             <Route path="data-entry" element={<DataEntry />} />
             <Route path="reports" element={<AdminReport />} />
             <Route path="heatmap" element={<AdminHeatmap />} />
+          </Route>
+
+          {/* Officer Routes (Cán bộ Địa chính) */}
+          <Route 
+            path="/officer" 
+            element={
+              <ProtectedRoute allowedRoles={['officer', 'admin']}>
+                <OfficerLayout />
+              </ProtectedRoute>
+            } 
+          >
+            <Route path="dashboard" element={<OfficerDashboard />} />
+            <Route path="land-parcels" element={<LandParcels />} />
+            <Route path="land-parcels/:id" element={<LandParcelDetail />} />
+            <Route path="contracts" element={<ContractHistory />} />
+            <Route path="map" element={<AdminHeatmap />} />
+          </Route>
+
+          {/* Finance Routes (Cán bộ Tài chính) */}
+          <Route 
+            path="/finance" 
+            element={
+              <ProtectedRoute allowedRoles={['finance', 'admin']}>
+                <FinanceLayout />
+              </ProtectedRoute>
+            } 
+          >
+            <Route path="dashboard" element={<FinanceDashboard />} />
+            <Route path="documents" element={<DocumentManagement />} />
+            <Route path="debt" element={<DebtManagement />} />
+            <Route path="reports" element={<FinancialReport />} />
           </Route>
 
           {/* Redirects */}

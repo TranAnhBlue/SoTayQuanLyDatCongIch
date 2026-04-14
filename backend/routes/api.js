@@ -5,6 +5,8 @@ const adminController = require('../controllers/adminController');
 const authController = require('../controllers/authController');
 const fileController = require('../controllers/fileController');
 const landParcelController = require('../controllers/landParcelController');
+const officerController = require('../controllers/officerController');
+const financeController = require('../controllers/financeController');
 const { protect, authorize } = require('../middleware/auth');
 
 // Import Cloudinary utilities
@@ -182,5 +184,41 @@ router.post('/admin/users', protect, authorize('admin'), adminController.createU
 
 // Tạo hợp đồng mới
 router.post('/admin/contracts', protect, authorize('admin'), adminController.createContract);
+
+// ======================================================
+//  OFFICER ROUTES (Cán bộ Địa chính)
+// ======================================================
+
+// Dashboard
+router.get('/officer/dashboard', protect, authorize('officer', 'admin'), officerController.getDashboard);
+router.get('/officer/recent-activities', protect, authorize('officer', 'admin'), officerController.getRecentActivities);
+router.get('/officer/alerts', protect, authorize('officer', 'admin'), officerController.getAlerts);
+
+// Land Parcels
+router.get('/officer/land-parcels', protect, authorize('officer', 'admin'), officerController.getLandParcels);
+router.get('/officer/land-parcels/:id', protect, authorize('officer', 'admin'), officerController.getLandParcel);
+router.post('/officer/land-parcels/:id/changes', protect, authorize('officer', 'admin'), officerController.addChangeHistory);
+
+// Contracts
+router.get('/officer/contracts', protect, authorize('officer', 'admin'), officerController.getContracts);
+
+// Documents
+router.get('/officer/documents', protect, authorize('officer', 'admin'), officerController.getDocuments);
+
+// ======================================================
+//  FINANCE ROUTES (Cán bộ Tài chính)
+// ======================================================
+
+// Dashboard
+router.get('/finance/dashboard', protect, authorize('finance', 'admin'), financeController.getDashboard);
+
+// Documents/Vouchers
+router.get('/finance/documents', protect, authorize('finance', 'admin'), financeController.getDocuments);
+
+// Debt Management
+router.get('/finance/debt', protect, authorize('finance', 'admin'), financeController.getDebtManagement);
+
+// Financial Reports
+router.get('/finance/reports', protect, authorize('finance', 'admin'), financeController.getFinancialReports);
 
 module.exports = router;

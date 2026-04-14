@@ -30,7 +30,9 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
     if (allowedRoles && !allowedRoles.includes(user.role)) {
         // Redirect về dashboard phù hợp với role
         const fallback = user.role === 'admin' || user.role === 'officer' 
-            ? '/admin/dashboard' 
+            ? '/admin/dashboard'
+            : user.role === 'finance'
+            ? '/finance/dashboard'
             : '/renter/dashboard';
         return <Navigate to={fallback} replace />;
     }
