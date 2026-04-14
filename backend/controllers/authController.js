@@ -48,8 +48,8 @@ exports.login = async (req, res) => {
             return res.status(400).json({ message: 'Vui lòng cung cấp email và mật khẩu' });
         }
 
-        // Check for user
-        const user = await User.findOne({ email }).select('+password');
+        // Check for user - explicitly select all needed fields
+        const user = await User.findOne({ email }).select('+password name email phone department position role avatar createdAt lastPasswordChange');
 
         if (!user) {
             return res.status(401).json({ message: 'Email hoặc mật khẩu không đúng' });
@@ -92,21 +92,23 @@ const sendTokenResponse = (user, statusCode, res) => {
         expiresIn: '30d'
     });
 
+    const userData = {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        department: user.department,
+        position: user.position,
+        role: user.role,
+        avatar: user.avatar,
+        createdAt: user.createdAt,
+        lastPasswordChange: user.lastPasswordChange
+    };
+
     res.status(statusCode).json({
         success: true,
         token,
-        user: {
-            id: user._id,
-            name: user.name,
-            email: user.email,
-            phone: user.phone,
-            department: user.department,
-            position: user.position,
-            role: user.role,
-            avatar: user.avatar,
-            createdAt: user.createdAt,
-            lastPasswordChange: user.lastPasswordChange
-        }
+        user: userData
     });
 };
 

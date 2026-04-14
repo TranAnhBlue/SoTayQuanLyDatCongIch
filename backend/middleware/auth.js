@@ -22,7 +22,7 @@ exports.protect = async (req, res, next) => {
         // Verify token
         const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret123');
 
-        req.user = await User.findById(decoded.id);
+        req.user = await User.findById(decoded.id).select('name email phone department position role avatar createdAt lastPasswordChange');
 
         next();
     } catch (err) {
