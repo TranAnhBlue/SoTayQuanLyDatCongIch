@@ -32,11 +32,17 @@ import FinanceDashboard from './pages/Finance/FinanceDashboard';
 import DocumentManagement from './pages/Finance/DocumentManagement';
 import DebtManagement from './pages/Finance/DebtManagement';
 import FinancialReport from './pages/Finance/FinancialReport';
+import InspectorDashboard from './pages/Inspector/InspectorDashboard';
+import InspectionHistory from './pages/Inspector/InspectionHistory';
+import AuditList from './pages/Inspector/AuditList';
+import AuditDetail from './pages/Inspector/AuditDetail';
+import ViolationManagement from './pages/Inspector/ViolationManagement';
 import ProtectedRoute from './components/Auth/ProtectedRoute';
 import AdminLayout from './layouts/AdminLayout';
 import RenterLayout from './layouts/RenterLayout';
 import OfficerLayout from './layouts/OfficerLayout';
 import FinanceLayout from './layouts/FinanceLayout';
+import InspectorLayout from './layouts/InspectorLayout';
 import { getToken } from './utils/auth';
 import axios from 'axios';
 import './App.css';
@@ -86,7 +92,7 @@ function App() {
           <Route 
             path="/profile" 
             element={
-              <ProtectedRoute allowedRoles={['admin', 'officer', 'renter', 'finance']}>
+              <ProtectedRoute allowedRoles={['admin', 'officer', 'renter', 'finance', 'inspector']}>
                 <ProfileSettings />
               </ProtectedRoute>
             } 
@@ -96,7 +102,7 @@ function App() {
           <Route 
             path="/test/file-upload" 
             element={
-              <ProtectedRoute allowedRoles={['admin', 'officer', 'renter', 'finance']}>
+              <ProtectedRoute allowedRoles={['admin', 'officer', 'renter', 'finance', 'inspector']}>
                 <FileUploadTest />
               </ProtectedRoute>
             } 
@@ -171,6 +177,22 @@ function App() {
             <Route path="documents" element={<DocumentManagement />} />
             <Route path="debt" element={<DebtManagement />} />
             <Route path="reports" element={<FinancialReport />} />
+          </Route>
+
+          {/* Inspector Routes (Thanh tra viên) */}
+          <Route 
+            path="/inspector" 
+            element={
+              <ProtectedRoute allowedRoles={['inspector', 'admin']}>
+                <InspectorLayout />
+              </ProtectedRoute>
+            } 
+          >
+            <Route path="dashboard" element={<InspectorDashboard />} />
+            <Route path="inspections" element={<InspectionHistory />} />
+            <Route path="audits" element={<AuditList />} />
+            <Route path="audits/:id" element={<AuditDetail />} />
+            <Route path="violations" element={<ViolationManagement />} />
           </Route>
 
           {/* Redirects */}

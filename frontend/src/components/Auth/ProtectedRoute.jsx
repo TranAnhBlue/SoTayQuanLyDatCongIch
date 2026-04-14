@@ -33,6 +33,8 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
             ? '/admin/dashboard'
             : user.role === 'finance'
             ? '/finance/dashboard'
+            : user.role === 'inspector'
+            ? '/inspector/dashboard'
             : '/renter/dashboard';
         return <Navigate to={fallback} replace />;
     }

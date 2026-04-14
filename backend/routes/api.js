@@ -7,6 +7,7 @@ const fileController = require('../controllers/fileController');
 const landParcelController = require('../controllers/landParcelController');
 const officerController = require('../controllers/officerController');
 const financeController = require('../controllers/financeController');
+const inspectorController = require('../controllers/inspectorController');
 const { protect, authorize } = require('../middleware/auth');
 
 // Import Cloudinary utilities
@@ -220,5 +221,22 @@ router.get('/finance/debt', protect, authorize('finance', 'admin'), financeContr
 
 // Financial Reports
 router.get('/finance/reports', protect, authorize('finance', 'admin'), financeController.getFinancialReports);
+
+// ======================================================
+//  INSPECTOR ROUTES (Thanh tra viên)
+// ======================================================
+
+// Dashboard
+router.get('/inspector/dashboard', protect, authorize('inspector', 'admin'), inspectorController.getDashboard);
+
+// Inspections
+router.get('/inspector/inspections', protect, authorize('inspector', 'admin'), inspectorController.getInspections);
+
+// Audits
+router.get('/inspector/audits/:id', protect, authorize('inspector', 'admin'), inspectorController.getAuditDetail);
+
+// Violations
+router.get('/inspector/violations', protect, authorize('inspector', 'admin'), inspectorController.getViolations);
+router.post('/inspector/violations', protect, authorize('inspector', 'admin'), inspectorController.createViolation);
 
 module.exports = router;

@@ -43,6 +43,8 @@ const Login = () => {
                             navigate('/officer/dashboard');
                         } else if (user.role === 'finance') {
                             navigate('/finance/dashboard');
+                        } else if (user.role === 'inspector') {
+                            navigate('/inspector/dashboard');
                         } else {
                             navigate('/renter/dashboard');
                         }
@@ -76,6 +78,8 @@ const Login = () => {
                 navigate('/officer/dashboard');
             } else if (user.role === 'finance') {
                 navigate('/finance/dashboard');
+            } else if (user.role === 'inspector') {
+                navigate('/inspector/dashboard');
             } else {
                 navigate('/renter/dashboard');
             }
@@ -142,6 +146,8 @@ const Login = () => {
                             ? '/officer/dashboard'
                             : user.role === 'finance'
                             ? '/finance/dashboard'
+                            : user.role === 'inspector'
+                            ? '/inspector/dashboard'
                             : '/renter/dashboard';
                         
                         console.log('🔄 Redirecting to:', targetUrl);
