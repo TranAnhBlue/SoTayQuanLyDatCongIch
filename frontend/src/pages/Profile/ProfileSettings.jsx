@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { 
   Row, 
   Col, 
@@ -18,7 +18,6 @@ import {
 } from 'antd';
 import { 
   UserOutlined, 
-  EditOutlined, 
   LockOutlined,
   EyeInvisibleOutlined,
   EyeTwoTone,
@@ -46,6 +45,52 @@ const ProfileSettings = () => {
   const [avatarModalVisible, setAvatarModalVisible] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [avatarKey, setAvatarKey] = useState(Date.now()); // Force re-render avatar
+  
+  // Password validation states
+  const [passwordValidation, setPasswordValidation] = useState({
+    minLength: false,      // Tối thiểu 12 ký tự
+    hasUppercase: false,   // Có chữ hoa (A-Z)
+    hasLowercase: false,   // Có chữ thường (a-z)
+    hasNumber: false,      // Có số (0-9)
+    hasSpecial: false,     // Có ký tự đặc biệt
+    isConfirmed: false     // Xác nhận mật khẩu khớp
+  });
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+
+  // Validate password in real-time
+  const validatePassword = (password) => {
+    const validation = {
+      minLength: password.length >= 12,
+      hasUppercase: /[A-Z]/.test(password),
+      hasLowercase: /[a-z]/.test(password),
+      hasNumber: /[0-9]/.test(password),
+      hasSpecial: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password),
+      isConfirmed: confirmPassword ? password === confirmPassword : false
+    };
+    setPasswordValidation(validation);
+    return validation;
+  };
+
+  // Validate confirm password
+  const validateConfirmPassword = (confirmPwd) => {
+    const validation = {
+      ...passwordValidation,
+      isConfirmed: newPassword ? newPassword === confirmPwd : false
+    };
+    setPasswordValidation(validation);
+    return validation;
+  };
+
+  // Check if all validations pass
+  const isPasswordValid = () => {
+    return passwordValidation.minLength && 
+           passwordValidation.hasUppercase && 
+           passwordValidation.hasLowercase && 
+           passwordValidation.hasNumber && 
+           passwordValidation.hasSpecial && 
+           passwordValidation.isConfirmed;
+  };
 
   // Hàm quay về dashboard theo role
   const handleGoBack = () => {
@@ -200,6 +245,22 @@ const ProfileSettings = () => {
       if (response.data.success) {
         message.success('Đổi mật khẩu thành công!');
         passwordForm.resetFields();
+        
+        // Reset password validation states
+        setPasswordValidation({
+          minLength: false,
+          hasUppercase: false,
+          hasLowercase: false,
+          hasNumber: false,
+          hasSpecial: false,
+          isConfirmed: false
+        });
+        setNewPassword('');
+        setConfirmPassword('');
+        
+        // Update user's lastPasswordChange in context
+        const updatedUser = { ...user, lastPasswordChange: new Date().toISOString() };
+        updateUser(updatedUser);
       } else {
         throw new Error(response.data.message || 'Đổi mật khẩu thất bại');
       }
@@ -458,9 +519,11 @@ const ProfileSettings = () => {
                 <span>Bảo mật tài khoản</span>
               </Space>
             }
+            styles={{ 
+              header: { backgroundColor: '#002e42', color: 'white', borderBottom: '1px solid rgba(255,255,255,0.1)' },
+              body: { backgroundColor: '#002e42' }
+            }}
             style={{ backgroundColor: '#002e42', color: 'white' }}
-            headStyle={{ backgroundColor: '#002e42', color: 'white', borderBottom: '1px solid rgba(255,255,255,0.1)' }}
-            bodyStyle={{ backgroundColor: '#002e42' }}
           >
             <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: '13px', display: 'block', marginBottom: '16px' }}>
               Tài khoản của bạn được bảo mật bằng phương pháp xác thực hai yếu tố (2FA).
@@ -526,14 +589,19 @@ const ProfileSettings = () => {
                 name="newPassword"
                 rules={[
                   { required: true, message: 'Vui lòng nhập mật khẩu mới!' },
-                  { min: 8, message: 'Mật khẩu phải có ít nhất 8 ký tự!' }
+                  { min: 12, message: 'Mật khẩu phải có ít nhất 12 ký tự!' }
                 ]}
               >
                 <Input.Password 
                   placeholder="Nhập mật khẩu mới"
                   iconRender={(visible) => (visible ? <EyeTwoTone /> : <EyeInvisibleOutlined />)}
                   style={{ backgroundColor: '#f5f5f5', border: 'none', borderRadius: '6px', height: '40px' }}
-                  onChange={(e) => checkPasswordStrength(e.target.value)}
+                  onChange={(e) => {
+                    const password = e.target.value;
+                    setNewPassword(password);
+                    validatePassword(password);
+                    checkPasswordStrength(password);
+                  }}
                 />
               </Form.Item>
 
@@ -572,6 +640,11 @@ const ProfileSettings = () => {
                   placeholder="Nhập lại mật khẩu mới"
                   iconRender={(visible) => (visible ? <EyeTwoTone /> : <EyeInvisibleOutlined />)}
                   style={{ backgroundColor: '#f5f5f5', border: 'none', borderRadius: '6px', height: '40px' }}
+                  onChange={(e) => {
+                    const confirmPwd = e.target.value;
+                    setConfirmPassword(confirmPwd);
+                    validateConfirmPassword(confirmPwd);
+                  }}
                 />
               </Form.Item>
 
@@ -580,14 +653,17 @@ const ProfileSettings = () => {
                   type="primary" 
                   htmlType="submit"
                   loading={passwordLoading}
+                  disabled={!isPasswordValid()}
                   size="large"
                   block
                   style={{ 
-                    backgroundColor: '#1e7e34', 
+                    backgroundColor: isPasswordValid() ? '#1e7e34' : '#d9d9d9', 
+                    borderColor: isPasswordValid() ? '#1e7e34' : '#d9d9d9',
                     borderRadius: '6px', 
                     height: '48px',
                     fontWeight: 600,
-                    fontSize: '15px'
+                    fontSize: '15px',
+                    cursor: isPasswordValid() ? 'pointer' : 'not-allowed'
                   }}
                   icon={<SafetyCertificateOutlined />}
                 >
@@ -598,7 +674,7 @@ const ProfileSettings = () => {
           </Col>
 
           <Col span={10}>
-            {/* Security Guidelines */}
+            {/* Security Guidelines with Real-time Validation */}
             <Card 
               title={
                 <Space>
@@ -608,24 +684,144 @@ const ProfileSettings = () => {
               }
               style={{ backgroundColor: '#f8fffe', border: '1px solid #d9f7be' }}
             >
-              <Space direction="vertical" size={12} style={{ width: '100%' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%' }}>
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
-                  <CheckCircleOutlined style={{ color: '#1e7e34', marginTop: '2px' }} />
-                  <Text style={{ fontSize: '13px' }}>Tối thiểu 12 ký tự trở lên.</Text>
+                  <CheckCircleOutlined 
+                    style={{ 
+                      color: passwordValidation.minLength ? '#1e7e34' : '#d9d9d9', 
+                      marginTop: '2px',
+                      transition: 'color 0.3s ease'
+                    }} 
+                  />
+                  <Text 
+                    style={{ 
+                      fontSize: '13px',
+                      color: passwordValidation.minLength ? '#1e7e34' : '#8c8c8c',
+                      fontWeight: passwordValidation.minLength ? 600 : 400,
+                      transition: 'all 0.3s ease'
+                    }}
+                  >
+                    Tối thiểu 12 ký tự trở lên.
+                  </Text>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
-                  <CheckCircleOutlined style={{ color: '#1e7e34', marginTop: '2px' }} />
-                  <Text style={{ fontSize: '13px' }}>Bao gồm ít nhất một chữ hoa (A-Z).</Text>
+                  <CheckCircleOutlined 
+                    style={{ 
+                      color: passwordValidation.hasUppercase ? '#1e7e34' : '#d9d9d9', 
+                      marginTop: '2px',
+                      transition: 'color 0.3s ease'
+                    }} 
+                  />
+                  <Text 
+                    style={{ 
+                      fontSize: '13px',
+                      color: passwordValidation.hasUppercase ? '#1e7e34' : '#8c8c8c',
+                      fontWeight: passwordValidation.hasUppercase ? 600 : 400,
+                      transition: 'all 0.3s ease'
+                    }}
+                  >
+                    Bao gồm ít nhất một chữ hoa (A-Z).
+                  </Text>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
-                  <ClockCircleOutlined style={{ color: '#faad14', marginTop: '2px' }} />
-                  <Text style={{ fontSize: '13px' }}>Bao gồm ít nhất một chữ số (0-9).</Text>
+                  <CheckCircleOutlined 
+                    style={{ 
+                      color: passwordValidation.hasLowercase ? '#1e7e34' : '#d9d9d9', 
+                      marginTop: '2px',
+                      transition: 'color 0.3s ease'
+                    }} 
+                  />
+                  <Text 
+                    style={{ 
+                      fontSize: '13px',
+                      color: passwordValidation.hasLowercase ? '#1e7e34' : '#8c8c8c',
+                      fontWeight: passwordValidation.hasLowercase ? 600 : 400,
+                      transition: 'all 0.3s ease'
+                    }}
+                  >
+                    Bao gồm ít nhất một chữ thường (a-z).
+                  </Text>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
-                  <ClockCircleOutlined style={{ color: '#faad14', marginTop: '2px' }} />
-                  <Text style={{ fontSize: '13px' }}>Sử dụng ký tự đặc biệt (!@#$%^&*).</Text>
+                  <CheckCircleOutlined 
+                    style={{ 
+                      color: passwordValidation.hasNumber ? '#1e7e34' : '#d9d9d9', 
+                      marginTop: '2px',
+                      transition: 'color 0.3s ease'
+                    }} 
+                  />
+                  <Text 
+                    style={{ 
+                      fontSize: '13px',
+                      color: passwordValidation.hasNumber ? '#1e7e34' : '#8c8c8c',
+                      fontWeight: passwordValidation.hasNumber ? 600 : 400,
+                      transition: 'all 0.3s ease'
+                    }}
+                  >
+                    Bao gồm ít nhất một chữ số (0-9).
+                  </Text>
                 </div>
-              </Space>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+                  <CheckCircleOutlined 
+                    style={{ 
+                      color: passwordValidation.hasSpecial ? '#1e7e34' : '#d9d9d9', 
+                      marginTop: '2px',
+                      transition: 'color 0.3s ease'
+                    }} 
+                  />
+                  <Text 
+                    style={{ 
+                      fontSize: '13px',
+                      color: passwordValidation.hasSpecial ? '#1e7e34' : '#8c8c8c',
+                      fontWeight: passwordValidation.hasSpecial ? 600 : 400,
+                      transition: 'all 0.3s ease'
+                    }}
+                  >
+                    Sử dụng ký tự đặc biệt (!@#$%^&*).
+                  </Text>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+                  <CheckCircleOutlined 
+                    style={{ 
+                      color: passwordValidation.isConfirmed ? '#1e7e34' : '#d9d9d9', 
+                      marginTop: '2px',
+                      transition: 'color 0.3s ease'
+                    }} 
+                  />
+                  <Text 
+                    style={{ 
+                      fontSize: '13px',
+                      color: passwordValidation.isConfirmed ? '#1e7e34' : '#8c8c8c',
+                      fontWeight: passwordValidation.isConfirmed ? 600 : 400,
+                      transition: 'all 0.3s ease'
+                    }}
+                  >
+                    Xác nhận mật khẩu khớp nhau.
+                  </Text>
+                </div>
+              </div>
+              
+              {/* Overall validation status */}
+              {newPassword && (
+                <div style={{ 
+                  marginTop: '16px', 
+                  padding: '12px', 
+                  backgroundColor: isPasswordValid() ? '#f6ffed' : '#fff2e8',
+                  border: `1px solid ${isPasswordValid() ? '#b7eb8f' : '#ffbb96'}`,
+                  borderRadius: '6px'
+                }}>
+                  <Text style={{ 
+                    fontSize: '12px', 
+                    color: isPasswordValid() ? '#1e7e34' : '#fa8c16',
+                    fontWeight: 600
+                  }}>
+                    {isPasswordValid() 
+                      ? '✓ Mật khẩu đáp ứng tất cả yêu cầu bảo mật' 
+                      : '⚠ Vui lòng hoàn thành tất cả yêu cầu bảo mật'
+                    }
+                  </Text>
+                </div>
+              )}
             </Card>
 
             {/* Last Update Info */}
@@ -640,7 +836,16 @@ const ProfileSettings = () => {
                 <ClockCircleOutlined style={{ color: '#1890ff' }} />
                 <Text strong style={{ fontSize: '13px', color: '#1890ff' }}>LẦN ĐỔI GẦN NHẤT</Text>
               </div>
-              <Text style={{ fontSize: '14px', fontWeight: 600 }}>15 tháng 08, 2023</Text>
+              <Text style={{ fontSize: '14px', fontWeight: 600 }}>
+                {user?.lastPasswordChange 
+                  ? new Date(user.lastPasswordChange).toLocaleDateString('vi-VN', {
+                      day: '2-digit',
+                      month: '2-digit', 
+                      year: 'numeric'
+                    })
+                  : 'Chưa có thông tin'
+                }
+              </Text>
             </div>
 
             {/* Security Quote */}

@@ -1,8 +1,9 @@
 {
-  "name": "frontend",
+  "name": "land-management-frontend",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
+  "description": "Frontend for Land Management System - Hệ thống Quản lý Đất đai",
   "scripts": {
     "dev": "vite",
     "build": "vite build",

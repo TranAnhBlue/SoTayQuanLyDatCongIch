@@ -1,0 +1,50 @@
+{
+  "name": "dat-viet-core",
+  "version": "1.0.0",
+  "description": "Đất Việt Core - Hệ thống Quản lý Đất đai tập trung, minh bạch và hiệu quả",
+  "main": "backend/server.js",
+  "scripts": {
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm run dev",
+    "build": "cd frontend && npm run build",
+    "start": "cd backend && npm start",
+    "install:all": "npm install && cd backend && npm install && cd ../frontend && npm install",
+    "clean": "node cleanup-dev-files.js"
+  },
+  "keywords": [
+    "land-management",
+    "vietnam",
+    "government",
+    "real-estate",
+    "property-management",
+    "react",
+    "nodejs",
+    "mongodb",
+    "cloudinary"
+  ],
+  "author": {
+    "name": "Đất Việt Core Team",
+    "email": "support@datvietcore.gov.vn"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-org/dat-viet-core.git"
+  },
+  "bugs": {
+    "url": "https://github.com/your-org/dat-viet-core/issues"
+  },
+  "homepage": "https://github.com/your-org/dat-viet-core#readme",
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  },
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

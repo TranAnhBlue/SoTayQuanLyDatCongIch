@@ -99,7 +99,13 @@ const sendTokenResponse = (user, statusCode, res) => {
             id: user._id,
             name: user.name,
             email: user.email,
-            role: user.role
+            phone: user.phone,
+            department: user.department,
+            position: user.position,
+            role: user.role,
+            avatar: user.avatar,
+            createdAt: user.createdAt,
+            lastPasswordChange: user.lastPasswordChange
         }
     });
 };
@@ -201,8 +207,9 @@ exports.resetPassword = async (req, res) => {
             return res.status(400).json({ message: 'Xác thực không hợp lệ để đổi mật khẩu' });
         }
 
-        // Set new password
+        // Set new password and update last change date
         user.password = password;
+        user.lastPasswordChange = new Date();
         user.resetPasswordOTP = undefined;
         user.resetPasswordOTPExpire = undefined;
 
@@ -238,7 +245,10 @@ exports.updateProfile = async (req, res) => {
                 phone: user.phone,
                 department: user.department,
                 position: user.position,
-                role: user.role
+                role: user.role,
+                avatar: user.avatar,
+                createdAt: user.createdAt,
+                lastPasswordChange: user.lastPasswordChange
             }
         });
     } catch (error) {
@@ -263,8 +273,9 @@ exports.changePassword = async (req, res) => {
             return res.status(400).json({ message: 'Mật khẩu hiện tại không đúng' });
         }
         
-        // Update password
+        // Update password and last change date
         user.password = newPassword;
+        user.lastPasswordChange = new Date();
         await user.save();
         
         res.status(200).json({

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * Cleanup Development Files
+ * Cleanup Development Files - Đất Việt Core
  * Removes test files, debug files, and other development artifacts
  * Run this before committing to production
  */

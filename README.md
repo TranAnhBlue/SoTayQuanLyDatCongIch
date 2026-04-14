@@ -1,6 +1,11 @@
-# 🏞️ Hệ Thống Quản Lý Đất Đai
+# 🏞️ Đất Việt Core - Hệ Thống Quản Lý Đất Đai
 
 Hệ thống quản lý đất công ích hiện đại với React frontend và Node.js backend.
+
+## 🎯 Tên dự án
+**Đất Việt Core** - Cốt lõi của Sự Thịnh Vượng
+
+Hệ thống quản lý đất đai tập trung, minh bạch và hiệu quả cho các cơ quan quản lý nhà nước.
 
 ## 🚀 Tính năng chính
 
@@ -124,7 +129,16 @@ CLOUDINARY_API_SECRET=your_api_secret
 
 ## 🚀 Chạy ứng dụng
 
-### Development
+### Quick Start (Recommended)
+```bash
+# Cài đặt tất cả dependencies
+npm run install:all
+
+# Chạy cả backend và frontend cùng lúc
+npm run dev
+```
+
+### Development (Manual)
 ```bash
 # Terminal 1: Backend
 cd backend
@@ -138,11 +152,9 @@ npm run dev
 ### Production
 ```bash
 # Build frontend
-cd frontend
 npm run build
 
 # Start backend
-cd backend
 npm start
 ```
 
