@@ -313,7 +313,7 @@ exports.uploadAvatar = async (req, res) => {
 // @access  Public
 exports.googleAuth = (req, res) => {
     // Redirect to Google OAuth
-    const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${process.env.GOOGLE_CLIENT_ID}&redirect_uri=${process.env.GOOGLE_REDIRECT_URI}&scope=profile email&response_type=code`;
+    const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${process.env.GOOGLE_CLIENT_ID}&redirect_uri=${process.env.GOOGLE_CALLBACK_URL}&scope=profile email&response_type=code`;
     res.redirect(googleAuthUrl);
 };
 
@@ -325,8 +325,10 @@ exports.googleCallback = async (req, res) => {
         const { code } = req.query;
         
         if (!code) {
-            return res.redirect(`${process.env.CLIENT_URL}/login?error=google_auth_failed`);
+            return res.redirect(`${process.env.CLIENT_URL}/login?error=missing_code`);
         }
+
+        console.log('🔄 Processing Google OAuth callback...');
 
         // Exchange code for access token
         const tokenResponse = await axios.post('https://oauth2.googleapis.com/token', {
@@ -334,47 +336,232 @@ exports.googleCallback = async (req, res) => {
             client_secret: process.env.GOOGLE_CLIENT_SECRET,
             code,
             grant_type: 'authorization_code',
-            redirect_uri: process.env.GOOGLE_REDIRECT_URI,
+            redirect_uri: process.env.GOOGLE_CALLBACK_URL,
         });
 
         const { access_token } = tokenResponse.data;
+        console.log('✅ Got access token from Google');
 
         // Get user info from Google
         const userResponse = await axios.get(`https://www.googleapis.com/oauth2/v2/userinfo?access_token=${access_token}`);
         const { id, email, name, picture } = userResponse.data;
+        
+        console.log(`👤 Google user info: ${name} (${email})`);
 
         // Check if user exists
         let user = await User.findOne({ email });
 
         if (!user) {
-            // Create new user
+            console.log('🆕 Creating new user from Google account');
+            // Create new user with required fields
             user = await User.create({
                 name,
                 email,
                 password: 'google_oauth_' + id, // Temporary password
                 role: 'renter', // Default role
-                phone: '', // Will be updated later
-                department: 'Google User',
-                position: 'User',
+                phone: '0000000000', // Default phone
+                department: 'Người dùng Google',
+                position: 'Người dùng',
                 avatar: picture
             });
         } else {
-            // Update avatar if from Google
+            console.log('👤 User exists, updating avatar if needed');
+            // Update avatar if from Google and user doesn't have one
             if (picture && !user.avatar) {
                 user.avatar = picture;
                 await user.save();
             }
         }
 
-        // Generate JWT token
-        const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
-            expiresIn: process.env.JWT_EXPIRE
+        // Generate JWT token using the same function as regular login
+        const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET || 'your_super_secret_key_123', {
+            expiresIn: process.env.JWT_EXPIRE || '30d'
         });
 
-        // Redirect to frontend with token
-        res.redirect(`${process.env.CLIENT_URL}/login?token=${token}&user=${encodeURIComponent(JSON.stringify(user))}`);
+        console.log('✅ Generated JWT token for Google user');
+
+        // Create success page HTML
+        const successHtml = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Đăng nhập thành công</title>
+            <style>
+                body { 
+                    font-family: 'Inter', sans-serif; 
+                    display: flex; 
+                    justify-content: center; 
+                    align-items: center; 
+                    height: 100vh; 
+                    margin: 0; 
+                    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+                }
+                .container { 
+                    text-align: center; 
+                    background: white; 
+                    padding: 40px; 
+                    border-radius: 20px; 
+                    box-shadow: 0 25px 50px rgba(0,0,0,0.15);
+                }
+                .success-icon { 
+                    font-size: 48px; 
+                    margin-bottom: 20px; 
+                }
+                .title { 
+                    color: #065f46; 
+                    font-size: 24px; 
+                    font-weight: 700; 
+                    margin-bottom: 10px; 
+                }
+                .message { 
+                    color: #6b7280; 
+                    margin-bottom: 20px; 
+                }
+                .loading { 
+                    color: #10b981; 
+                    font-weight: 600; 
+                }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="success-icon">✅</div>
+                <div class="title">Đăng nhập Google thành công!</div>
+                <div class="message">Chào mừng ${user.name}</div>
+                <div class="loading">Đang chuyển hướng...</div>
+            </div>
+            <script>
+                console.log('Google OAuth callback - sending message to parent');
+                
+                const userData = ${JSON.stringify({
+                    id: user._id,
+                    name: user.name,
+                    email: user.email,
+                    role: user.role,
+                    avatar: user.avatar
+                })};
+                
+                const messageData = {
+                    type: 'GOOGLE_LOGIN_SUCCESS',
+                    token: '${token}',
+                    user: userData
+                };
+                
+                console.log('Sending message:', messageData);
+                
+                // Send data to parent window and close
+                if (window.opener) {
+                    // Try multiple origins to ensure message is received
+                    const origins = ['http://localhost:5173', 'http://localhost:3000', '*'];
+                    
+                    origins.forEach(origin => {
+                        try {
+                            window.opener.postMessage(messageData, origin);
+                            console.log('Message sent to origin:', origin);
+                        } catch (e) {
+                            console.log('Failed to send to origin:', origin, e.message);
+                        }
+                    });
+                    
+                    // Close popup after a short delay
+                    setTimeout(() => {
+                        window.close();
+                    }, 1000);
+                } else {
+                    console.log('No opener found, redirecting...');
+                    // Fallback: redirect with URL params
+                    window.location.href = '${process.env.CLIENT_URL}/login?token=${token}&user=${encodeURIComponent(JSON.stringify({
+                        id: user._id,
+                        name: user.name,
+                        email: user.email,
+                        role: user.role,
+                        avatar: user.avatar
+                    }))}';
+                }
+            </script>
+        </body>
+        </html>
+        `;
+
+        res.send(successHtml);
     } catch (error) {
-        console.error('[Google OAuth callback]', error);
-        res.redirect(`${process.env.CLIENT_URL}/login?error=google_auth_failed`);
+        console.error('❌ Google OAuth callback error:', error.message);
+        
+        const errorHtml = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Lỗi đăng nhập</title>
+            <style>
+                body { 
+                    font-family: 'Inter', sans-serif; 
+                    display: flex; 
+                    justify-content: center; 
+                    align-items: center; 
+                    height: 100vh; 
+                    margin: 0; 
+                    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+                }
+                .container { 
+                    text-align: center; 
+                    background: white; 
+                    padding: 40px; 
+                    border-radius: 20px; 
+                    box-shadow: 0 25px 50px rgba(0,0,0,0.15);
+                }
+                .error-icon { 
+                    font-size: 48px; 
+                    margin-bottom: 20px; 
+                }
+                .title { 
+                    color: #dc2626; 
+                    font-size: 24px; 
+                    font-weight: 700; 
+                    margin-bottom: 10px; 
+                }
+                .message { 
+                    color: #6b7280; 
+                    margin-bottom: 20px; 
+                }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="error-icon">❌</div>
+                <div class="title">Đăng nhập thất bại</div>
+                <div class="message">Có lỗi xảy ra trong quá trình đăng nhập Google</div>
+            </div>
+            <script>
+                console.log('Google OAuth error - sending error message to parent');
+                
+                if (window.opener) {
+                    const origins = ['http://localhost:5173', 'http://localhost:3000', '*'];
+                    
+                    origins.forEach(origin => {
+                        try {
+                            window.opener.postMessage({
+                                type: 'GOOGLE_LOGIN_ERROR',
+                                error: 'authentication_failed'
+                            }, origin);
+                            console.log('Error message sent to origin:', origin);
+                        } catch (e) {
+                            console.log('Failed to send error to origin:', origin, e.message);
+                        }
+                    });
+                    
+                    setTimeout(() => {
+                        window.close();
+                    }, 2000);
+                } else {
+                    setTimeout(() => {
+                        window.location.href = '${process.env.CLIENT_URL}/login?error=google_auth_failed';
+                    }, 2000);
+                }
+            </script>
+        </body>
+        </html>
+        `;
+        
+        res.send(errorHtml);
     }
 };
