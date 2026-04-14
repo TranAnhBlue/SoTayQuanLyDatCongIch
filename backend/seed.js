@@ -6,6 +6,8 @@ const Feedback = require('./models/Feedback');
 const AuditLog = require('./models/AuditLog');
 const Violation = require('./models/Violation');
 const User = require('./models/User');
+const LandParcel = require('./models/LandParcel');
+const LegalDocument = require('./models/LegalDocument');
 
 dotenv.config();
 
@@ -45,6 +47,8 @@ const seedDB = async () => {
         await AuditLog.deleteMany({});
         await Violation.deleteMany({});
         await User.deleteMany({});
+        await LandParcel.deleteMany({});
+        await LegalDocument.deleteMany({});
 
         console.log('Old data cleared.');
 
@@ -261,6 +265,138 @@ const seedDB = async () => {
         }
         await Feedback.insertMany(feedbacksData);
         console.log(`Seeded ${feedbacksData.length} feedbacks.`);
+
+        // 6. Setup Land Parcels
+        const landParcelsData = [];
+        const landTypes = ['Đất sản xuất nông nghiệp', 'Đất nuôi trồng thủy sản', 'Đất công trình công cộng', 'Đất chưa sử dụng'];
+        const currentStatuses = ['Đang cho thuê/giao khoán', 'Chưa đưa vào sử dụng', 'Sử dụng sai mục đích', 'Bị lấn chiếm, tranh chấp'];
+        const legalStatuses = ['Đầy đủ – hợp lệ', 'Chưa đầy đủ', 'Cần xác minh'];
+        const approvalStatuses = ['Đã phê duyệt', 'Chưa phê duyệt', 'Cần bổ sung'];
+
+        for(let i = 1; i <= 50; i++) {
+            const mapSheet = Math.floor(Math.random() * 50) + 1;
+            const parcelNumber = Math.floor(Math.random() * 200) + 1;
+            const area = Math.floor(Math.random() * 5000) + 500;
+            const village = THON_LIST[Math.floor(Math.random() * THON_LIST.length)];
+            const landType = landTypes[Math.floor(Math.random() * landTypes.length)];
+            const currentStatus = currentStatuses[Math.floor(Math.random() * currentStatuses.length)];
+            const legalStatus = legalStatuses[Math.floor(Math.random() * legalStatuses.length)];
+            const approvalStatus = approvalStatuses[Math.floor(Math.random() * approvalStatuses.length)];
+            
+            const parcelData = {
+                mapSheet: mapSheet.toString(),
+                parcelNumber: parcelNumber.toString(),
+                area: area,
+                village: village,
+                landType: landType,
+                currentStatus: currentStatus,
+                coordinates: {
+                    latitude: generateRandomYenThuongCoordinate()[0],
+                    longitude: generateRandomYenThuongCoordinate()[1]
+                },
+                legalDocuments: {
+                    allocationDecision: {
+                        number: `QĐ-${Math.floor(Math.random() * 1000)}/2023/QĐ-UBND`,
+                        date: randomDate(new Date(2020, 0, 1), new Date()),
+                        issuedBy: 'UBND Xã Yên Thường'
+                    },
+                    legalStatus: legalStatus
+                },
+                notes: i % 5 === 0 ? 'Cần kiểm tra lại ranh giới' : '',
+                canExploit: legalStatus === 'Đầy đủ – hợp lệ' && currentStatus !== 'Bị lấn chiếm, tranh chấp' && approvalStatus === 'Đã phê duyệt',
+                createdBy: createdUsers[0]._id, // Admin user
+                approvalStatus: approvalStatus,
+                approvedBy: approvalStatus === 'Đã phê duyệt' ? createdUsers[0]._id : undefined,
+                approvedAt: approvalStatus === 'Đã phê duyệt' ? randomDate(new Date(2023, 0, 1), new Date()) : undefined
+            };
+
+            // Add some change history for some parcels
+            if (i % 3 === 0) {
+                const changeTypes = ['Chuyển mục đích sử dụng', 'Điều chỉnh diện tích', 'Thay đổi đối tượng thuê'];
+                parcelData.changeHistory = [{
+                    changeType: changeTypes[Math.floor(Math.random() * changeTypes.length)],
+                    changeDate: randomDate(new Date(2023, 0, 1), new Date()),
+                    description: 'Điều chỉnh theo quyết định của UBND',
+                    legalBasis: `Quyết định số ${Math.floor(Math.random() * 100)}/2024/QĐ-UBND`,
+                    updatedBy: createdUsers[0]._id
+                }];
+            }
+
+            landParcelsData.push(parcelData);
+        }
+
+        await LandParcel.insertMany(landParcelsData);
+        console.log(`Seeded ${landParcelsData.length} land parcels.`);
+
+        // 7. Setup Legal Documents
+        const legalDocumentsData = [];
+        const documentTypes = ['Thông tư', 'Nghị định', 'Quyết định', 'Công văn', 'Hướng dẫn'];
+        const issuedByOptions = ['Chính phủ', 'UBND Tỉnh', 'UBND Huyện', 'Bộ TN&MT'];
+        const documentStatuses = ['Có hiệu lực', 'Hết hiệu lực', 'Tạm dừng'];
+
+        const sampleDocuments = [
+            {
+                documentNumber: 'TT-01/2024-UBND',
+                title: 'Thông tư hướng dẫn quản lý đất công ích',
+                documentType: 'Thông tư',
+                issuedBy: 'UBND Tỉnh',
+                description: 'Hướng dẫn quy trình quản lý, sử dụng đất công ích trên địa bàn tỉnh'
+            },
+            {
+                documentNumber: 'NĐ-15/2024-CP',
+                title: 'Nghị định về quản lý quỹ đất công',
+                documentType: 'Nghị định',
+                issuedBy: 'Chính phủ',
+                description: 'Quy định chi tiết về quản lý, sử dụng quỹ đất công trên toàn quốc'
+            },
+            {
+                documentNumber: 'QĐ-125/2024-UBND',
+                title: 'Quyết định phê duyệt quy hoạch sử dụng đất',
+                documentType: 'Quyết định',
+                issuedBy: 'UBND Huyện',
+                description: 'Phê duyệt quy hoạch sử dụng đất giai đoạn 2024-2030'
+            }
+        ];
+
+        for(let i = 0; i < sampleDocuments.length; i++) {
+            const doc = sampleDocuments[i];
+            const issuedDate = randomDate(new Date(2024, 0, 1), new Date());
+            const effectiveDate = new Date(issuedDate);
+            effectiveDate.setDate(effectiveDate.getDate() + 15); // Effective 15 days after issued
+
+            legalDocumentsData.push({
+                ...doc,
+                issuedDate: issuedDate,
+                effectiveDate: effectiveDate,
+                status: 'Có hiệu lực',
+                createdBy: createdUsers[0]._id
+            });
+        }
+
+        // Add more random documents
+        for(let i = 4; i <= 15; i++) {
+            const docType = documentTypes[Math.floor(Math.random() * documentTypes.length)];
+            const issuedBy = issuedByOptions[Math.floor(Math.random() * issuedByOptions.length)];
+            const status = documentStatuses[Math.floor(Math.random() * documentStatuses.length)];
+            const issuedDate = randomDate(new Date(2020, 0, 1), new Date());
+            const effectiveDate = new Date(issuedDate);
+            effectiveDate.setDate(effectiveDate.getDate() + Math.floor(Math.random() * 30) + 1);
+
+            legalDocumentsData.push({
+                documentNumber: `${docType.substring(0,2).toUpperCase()}-${i}/2024-${issuedBy.substring(0,4).toUpperCase()}`,
+                title: `${docType} về quản lý đất đai số ${i}`,
+                documentType: docType,
+                issuedBy: issuedBy,
+                issuedDate: issuedDate,
+                effectiveDate: effectiveDate,
+                status: status,
+                description: `Nội dung ${docType.toLowerCase()} liên quan đến quản lý và sử dụng đất đai`,
+                createdBy: createdUsers[0]._id
+            });
+        }
+
+        await LegalDocument.insertMany(legalDocumentsData);
+        console.log(`Seeded ${legalDocumentsData.length} legal documents.`);
 
         console.log('Database seeding successfully completed for Yen Thuong!');
         process.exit(0);

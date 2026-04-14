@@ -15,7 +15,8 @@ import {
   EnvironmentOutlined,
   FileTextOutlined,
   HistoryOutlined,
-  FormOutlined
+  FormOutlined,
+  DatabaseOutlined
 } from '@ant-design/icons';
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -143,6 +144,8 @@ const AdminLayout = () => {
               style={{ borderRight: 0 }}
               items={[
                 { key: '/admin/dashboard', icon: <AppstoreOutlined />, label: 'Tổng quan' },
+                { type: 'divider', style: { margin: '8px 0', backgroundColor: 'transparent' } },
+                { key: '/admin/data-entry', icon: <DatabaseOutlined />, label: 'Nhập liệu dữ liệu' },
                 { type: 'divider', style: { margin: '8px 0', backgroundColor: 'transparent' } },
                 { key: '/admin/land-parcels', icon: <EnvironmentOutlined />, label: 'Quản lý thửa đất' },
                 { key: '/admin/legal-documents', icon: <FileTextOutlined />, label: 'Văn bản pháp lý' },

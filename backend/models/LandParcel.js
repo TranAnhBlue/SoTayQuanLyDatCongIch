@@ -4,7 +4,6 @@ const landParcelSchema = new mongoose.Schema({
     // Mã định danh thửa đất (CI-XXX)
     parcelCode: {
         type: String,
-        required: true,
         match: /^CI-\d{3}$/
     },
     
@@ -169,8 +168,7 @@ const landParcelSchema = new mongoose.Schema({
 });
 
 // Index để tìm kiếm nhanh
-landParcelSchema.index({ parcelCode: 1 }, { unique: true });
-landParcelSchema.index({ mapSheet: 1, parcelNumber: 1 });
+landParcelSchema.index({ mapSheet: 1, parcelNumber: 1 }, { unique: true });
 landParcelSchema.index({ village: 1 });
 landParcelSchema.index({ currentStatus: 1 });
 landParcelSchema.index({ 'legalDocuments.legalStatus': 1 });

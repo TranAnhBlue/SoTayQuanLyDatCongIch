@@ -15,6 +15,7 @@ import LandParcels from './pages/Admin/LandParcels';
 import LegalDocuments from './pages/Admin/LegalDocuments';
 import ChangeHistory from './pages/Admin/ChangeHistory';
 import LandRequestManagement from './pages/Admin/LandRequestManagement';
+import DataEntry from './pages/Admin/DataEntry';
 import CreateLandRequest from './pages/Renter/CreateLandRequest';
 import CreateLandRequestSimple from './pages/Renter/CreateLandRequestSimple';
 import LandRequests from './pages/Renter/LandRequests';
@@ -128,6 +129,7 @@ function App() {
             <Route path="legal-documents" element={<LegalDocuments />} />
             <Route path="change-history" element={<ChangeHistory />} />
             <Route path="land-request-management" element={<LandRequestManagement />} />
+            <Route path="data-entry" element={<DataEntry />} />
             <Route path="reports" element={<AdminReport />} />
             <Route path="heatmap" element={<AdminHeatmap />} />
           </Route>

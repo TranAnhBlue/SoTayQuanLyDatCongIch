@@ -169,34 +169,23 @@ const ChangeHistory = () => {
   const fetchChanges = async (page = 1, pageSize = 10, filterParams = {}) => {
     setLoading(true);
     try {
-      // For now, use mock data
-      // In real implementation, this would be an API call
-      setTimeout(() => {
-        let filteredData = [...mockChanges];
-        
-        // Apply filters
-        if (filterParams.search) {
-          filteredData = filteredData.filter(item => 
-            item.parcelCode.toLowerCase().includes(filterParams.search.toLowerCase()) ||
-            item.description.toLowerCase().includes(filterParams.search.toLowerCase())
-          );
-        }
-        
-        if (filterParams.changeType) {
-          filteredData = filteredData.filter(item => item.changeType === filterParams.changeType);
-        }
-        
-        setChanges(filteredData);
-        setPagination({
-          current: page,
-          pageSize: pageSize,
-          total: filteredData.length
-        });
-        setLoading(false);
-      }, 500);
+      const params = {
+        page,
+        limit: pageSize,
+        ...filterParams
+      };
+      
+      const response = await axios.get('http://localhost:5000/api/admin/change-history', { params });
+      setChanges(response.data.data);
+      setPagination({
+        current: response.data.pagination.current,
+        pageSize: pageSize,
+        total: response.data.pagination.totalRecords
+      });
     } catch (error) {
       message.error('Lỗi khi tải dữ liệu lịch sử biến động');
       console.error('Error fetching changes:', error);
+    } finally {
       setLoading(false);
     }
   };

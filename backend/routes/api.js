@@ -131,29 +131,56 @@ router.post('/admin/approvals/:id/reject', adminController.rejectContract);
 // ======================================================
 
 // Quản lý danh mục thửa đất
-router.get('/admin/land-parcels/statistics', landParcelController.getStatistics);
-router.get('/admin/land-parcels', landParcelController.getLandParcels);
-router.post('/admin/land-parcels', landParcelController.createLandParcel);
-router.get('/admin/land-parcels/:id', landParcelController.getLandParcel);
-router.put('/admin/land-parcels/:id', landParcelController.updateLandParcel);
+router.get('/admin/land-parcels/statistics', protect, authorize('admin', 'officer'), landParcelController.getStatistics);
+router.get('/admin/land-parcels', protect, authorize('admin', 'officer'), landParcelController.getLandParcels);
+router.post('/admin/land-parcels', protect, authorize('admin', 'officer'), landParcelController.createLandParcel);
+router.get('/admin/land-parcels/:id', protect, authorize('admin', 'officer'), landParcelController.getLandParcel);
+router.put('/admin/land-parcels/:id', protect, authorize('admin', 'officer'), landParcelController.updateLandParcel);
 router.delete('/admin/land-parcels/:id', protect, authorize('admin'), landParcelController.deleteLandParcel);
 
 // Phê duyệt thửa đất (Admin only)
 router.put('/admin/land-parcels/:id/approve', protect, authorize('admin'), landParcelController.approveLandParcel);
 
 // Quản lý biến động đất đai
-router.post('/admin/land-parcels/:id/changes', landParcelController.addChangeHistory);
+router.post('/admin/land-parcels/:id/changes', protect, authorize('admin', 'officer'), landParcelController.addChangeHistory);
 
 // ======================================================
 //  LAND REQUEST MANAGEMENT ROUTES (Admin/Officer only)
 // ======================================================
 
 // Quản lý đơn xin thuê đất
-router.get('/admin/land-requests', adminController.getLandRequests);
-router.get('/admin/land-requests/:id', adminController.getLandRequest);
-router.put('/admin/land-requests/:id/status', adminController.updateLandRequestStatus);
+router.get('/admin/land-requests', protect, authorize('admin', 'officer'), adminController.getLandRequests);
+router.get('/admin/land-requests/:id', protect, authorize('admin', 'officer'), adminController.getLandRequest);
+router.put('/admin/land-requests/:id/status', protect, authorize('admin', 'officer'), adminController.updateLandRequestStatus);
 
 // Tạo hợp đồng từ đơn được phê duyệt (Admin only)
 router.post('/admin/land-requests/:id/create-contract', protect, authorize('admin'), adminController.createContractFromRequest);
+
+// ======================================================
+//  LEGAL DOCUMENTS MANAGEMENT ROUTES (Admin/Officer only)
+// ======================================================
+
+// Quản lý văn bản pháp lý
+router.get('/admin/legal-documents', protect, authorize('admin', 'officer'), adminController.getLegalDocuments);
+router.post('/admin/legal-documents', protect, authorize('admin', 'officer'), adminController.createLegalDocument);
+router.put('/admin/legal-documents/:id', protect, authorize('admin', 'officer'), adminController.updateLegalDocument);
+router.delete('/admin/legal-documents/:id', protect, authorize('admin'), adminController.deleteLegalDocument);
+
+// ======================================================
+//  CHANGE HISTORY ROUTES (Admin/Officer only)
+// ======================================================
+
+// Lịch sử biến động đất đai
+router.get('/admin/change-history', protect, authorize('admin', 'officer'), adminController.getChangeHistory);
+
+// ======================================================
+//  DATA ENTRY ROUTES (Admin only)
+// ======================================================
+
+// Tạo người dùng mới
+router.post('/admin/users', protect, authorize('admin'), adminController.createUser);
+
+// Tạo hợp đồng mới
+router.post('/admin/contracts', protect, authorize('admin'), adminController.createContract);
 
 module.exports = router;

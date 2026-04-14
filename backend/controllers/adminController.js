@@ -3,6 +3,7 @@ const Violation = require('../models/Violation');
 const Contract = require('../models/Contract');
 const Transaction = require('../models/Transaction');
 const Feedback = require('../models/Feedback');
+const mongoose = require('mongoose');
 
 // ==========================================
 //  ADMIN DASHBOARD
@@ -506,6 +507,243 @@ exports.updateViolation = async (req, res) => {
 };
 
 // ==========================================
+//  LEGAL DOCUMENTS MANAGEMENT
+// ==========================================
+
+// @desc    Get all legal documents
+// @route   GET /api/admin/legal-documents
+// @access  Private (Admin/Officer only)
+exports.getLegalDocuments = async (req, res) => {
+    try {
+        const {
+            page = 1,
+            limit = 10,
+            search,
+            documentType,
+            status,
+            issuedBy
+        } = req.query;
+
+        // Build filter
+        const filter = {};
+        if (search) {
+            filter.$or = [
+                { documentNumber: { $regex: search, $options: 'i' } },
+                { title: { $regex: search, $options: 'i' } }
+            ];
+        }
+        if (documentType) filter.documentType = documentType;
+        if (status) filter.status = status;
+        if (issuedBy) filter.issuedBy = issuedBy;
+
+        const LegalDocument = require('../models/LegalDocument');
+        const documents = await LegalDocument.find(filter)
+            .sort({ createdAt: -1 })
+            .limit(limit * 1)
+            .skip((page - 1) * limit);
+
+        const total = await LegalDocument.countDocuments(filter);
+
+        res.status(200).json({
+            success: true,
+            data: documents,
+            pagination: {
+                current: parseInt(page),
+                total: Math.ceil(total / limit),
+                count: documents.length,
+                totalRecords: total
+            }
+        });
+    } catch (error) {
+        console.error('[Admin getLegalDocuments]', error);
+        res.status(500).json({ message: 'Lỗi máy chủ', error: error.message });
+    }
+};
+
+// @desc    Create legal document
+// @route   POST /api/admin/legal-documents
+// @access  Private (Admin/Officer only)
+exports.createLegalDocument = async (req, res) => {
+    try {
+        const LegalDocument = require('../models/LegalDocument');
+        const document = await LegalDocument.create({
+            ...req.body,
+            createdBy: req.user.id
+        });
+
+        res.status(201).json({
+            success: true,
+            message: 'Tạo văn bản thành công',
+            data: document
+        });
+    } catch (error) {
+        console.error('[Admin createLegalDocument]', error);
+        if (error.name === 'ValidationError') {
+            const messages = Object.values(error.errors).map(err => err.message);
+            return res.status(400).json({ message: messages.join(', ') });
+        }
+        res.status(500).json({ message: 'Lỗi máy chủ', error: error.message });
+    }
+};
+
+// @desc    Update legal document
+// @route   PUT /api/admin/legal-documents/:id
+// @access  Private (Admin/Officer only)
+exports.updateLegalDocument = async (req, res) => {
+    try {
+        const LegalDocument = require('../models/LegalDocument');
+        const document = await LegalDocument.findByIdAndUpdate(
+            req.params.id,
+            { ...req.body, updatedBy: req.user.id },
+            { new: true, runValidators: true }
+        );
+
+        if (!document) {
+            return res.status(404).json({ message: 'Không tìm thấy văn bản' });
+        }
+
+        res.status(200).json({
+            success: true,
+            message: 'Cập nhật văn bản thành công',
+            data: document
+        });
+    } catch (error) {
+        console.error('[Admin updateLegalDocument]', error);
+        res.status(500).json({ message: 'Lỗi máy chủ', error: error.message });
+    }
+};
+
+// @desc    Delete legal document
+// @route   DELETE /api/admin/legal-documents/:id
+// @access  Private (Admin only)
+exports.deleteLegalDocument = async (req, res) => {
+    try {
+        const LegalDocument = require('../models/LegalDocument');
+        const document = await LegalDocument.findByIdAndDelete(req.params.id);
+
+        if (!document) {
+            return res.status(404).json({ message: 'Không tìm thấy văn bản' });
+        }
+
+        res.status(200).json({
+            success: true,
+            message: 'Xóa văn bản thành công'
+        });
+    } catch (error) {
+        console.error('[Admin deleteLegalDocument]', error);
+        res.status(500).json({ message: 'Lỗi máy chủ', error: error.message });
+    }
+};
+
+// ==========================================
+//  CHANGE HISTORY MANAGEMENT
+// ==========================================
+
+// @desc    Get change history
+// @route   GET /api/admin/change-history
+// @access  Private (Admin/Officer only)
+exports.getChangeHistory = async (req, res) => {
+    try {
+        const {
+            page = 1,
+            limit = 10,
+            search,
+            changeType,
+            dateRange,
+            updatedBy
+        } = req.query;
+
+        const LandParcel = require('../models/LandParcel');
+        
+        // Build aggregation pipeline
+        const pipeline = [
+            { $unwind: '$changeHistory' },
+            {
+                $lookup: {
+                    from: 'users',
+                    localField: 'changeHistory.updatedBy',
+                    foreignField: '_id',
+                    as: 'changeHistory.updatedBy'
+                }
+            },
+            { $unwind: '$changeHistory.updatedBy' },
+            {
+                $addFields: {
+                    parcelLocation: {
+                        $concat: [
+                            'Tờ ', '$mapSheet', ', Thửa ', '$parcelNumber', ', ', '$village'
+                        ]
+                    }
+                }
+            },
+            {
+                $project: {
+                    _id: '$changeHistory._id',
+                    parcelCode: 1,
+                    parcelLocation: 1,
+                    changeType: '$changeHistory.changeType',
+                    changeDate: '$changeHistory.changeDate',
+                    description: '$changeHistory.description',
+                    legalBasis: '$changeHistory.legalBasis',
+                    updatedBy: '$changeHistory.updatedBy'
+                }
+            }
+        ];
+
+        // Add filters
+        const matchConditions = {};
+        if (search) {
+            matchConditions.$or = [
+                { parcelCode: { $regex: search, $options: 'i' } },
+                { 'changeHistory.description': { $regex: search, $options: 'i' } }
+            ];
+        }
+        if (changeType) {
+            matchConditions['changeHistory.changeType'] = changeType;
+        }
+        if (updatedBy) {
+            matchConditions['changeHistory.updatedBy'] = new mongoose.Types.ObjectId(updatedBy);
+        }
+
+        if (Object.keys(matchConditions).length > 0) {
+            pipeline.unshift({ $match: matchConditions });
+        }
+
+        // Add sorting
+        pipeline.push({ $sort: { changeDate: -1 } });
+
+        // Execute aggregation
+        const changes = await LandParcel.aggregate([
+            ...pipeline,
+            { $skip: (page - 1) * limit },
+            { $limit: parseInt(limit) }
+        ]);
+
+        // Get total count
+        const totalPipeline = [
+            ...pipeline.slice(0, -2), // Remove skip and limit
+            { $count: 'total' }
+        ];
+        const totalResult = await LandParcel.aggregate(totalPipeline);
+        const total = totalResult[0]?.total || 0;
+
+        res.status(200).json({
+            success: true,
+            data: changes,
+            pagination: {
+                current: parseInt(page),
+                total: Math.ceil(total / limit),
+                count: changes.length,
+                totalRecords: total
+            }
+        });
+    } catch (error) {
+        console.error('[Admin getChangeHistory]', error);
+        res.status(500).json({ message: 'Lỗi máy chủ', error: error.message });
+    }
+};
+
+// ==========================================
 //  LAND REQUEST MANAGEMENT
 // ==========================================
 
@@ -720,6 +958,95 @@ exports.createContractFromRequest = async (req, res) => {
         });
     } catch (error) {
         console.error('[Admin createContractFromRequest]', error);
+        res.status(500).json({ message: 'Lỗi máy chủ', error: error.message });
+    }
+};
+
+// ==========================================
+//  DATA ENTRY MANAGEMENT
+// ==========================================
+
+// @desc    Create user (Admin only)
+// @route   POST /api/admin/users
+// @access  Private (Admin only)
+exports.createUser = async (req, res) => {
+    try {
+        const User = require('../models/User');
+        const { name, email, phone, role, department, position, password } = req.body;
+        
+        // Check if user already exists
+        const existingUser = await User.findOne({ email });
+        if (existingUser) {
+            return res.status(400).json({ message: 'Email đã được sử dụng' });
+        }
+
+        const user = await User.create({
+            name,
+            email,
+            phone,
+            role,
+            department,
+            position,
+            password,
+            isFirstLogin: true // Yêu cầu đổi mật khẩu lần đầu
+        });
+
+        // Remove password from response
+        user.password = undefined;
+
+        res.status(201).json({
+            success: true,
+            message: 'Tạo người dùng thành công',
+            data: user
+        });
+    } catch (error) {
+        console.error('[Admin createUser]', error);
+        if (error.name === 'ValidationError') {
+            const messages = Object.values(error.errors).map(err => err.message);
+            return res.status(400).json({ message: messages.join(', ') });
+        }
+        res.status(500).json({ message: 'Lỗi máy chủ', error: error.message });
+    }
+};
+
+// @desc    Create contract (Admin only)
+// @route   POST /api/admin/contracts
+// @access  Private (Admin only)
+exports.createContract = async (req, res) => {
+    try {
+        const Contract = require('../models/Contract');
+        
+        // Generate contract code
+        const year = new Date().getFullYear();
+        const lastContract = await Contract.findOne({
+            contractCode: { $regex: `^YT-${year}-` }
+        }, {}, { sort: { 'contractCode': -1 } });
+        
+        let nextNumber = 1;
+        if (lastContract && lastContract.contractCode) {
+            const currentNumber = parseInt(lastContract.contractCode.split('-')[2]);
+            nextNumber = currentNumber + 1;
+        }
+        
+        const contractCode = `YT-${year}-${nextNumber.toString().padStart(5, '0')}`;
+        
+        const contract = await Contract.create({
+            ...req.body,
+            contractCode,
+            createdBy: req.user.id
+        });
+
+        res.status(201).json({
+            success: true,
+            message: 'Tạo hợp đồng thành công',
+            data: contract
+        });
+    } catch (error) {
+        console.error('[Admin createContract]', error);
+        if (error.name === 'ValidationError') {
+            const messages = Object.values(error.errors).map(err => err.message);
+            return res.status(400).json({ message: messages.join(', ') });
+        }
         res.status(500).json({ message: 'Lỗi máy chủ', error: error.message });
     }
 };

@@ -104,20 +104,23 @@ const LegalDocuments = () => {
   const fetchDocuments = async (page = 1, pageSize = 10, filterParams = {}) => {
     setLoading(true);
     try {
-      // For now, use mock data
-      // In real implementation, this would be an API call
-      setTimeout(() => {
-        setDocuments(mockDocuments);
-        setPagination({
-          current: page,
-          pageSize: pageSize,
-          total: mockDocuments.length
-        });
-        setLoading(false);
-      }, 500);
+      const params = {
+        page,
+        limit: pageSize,
+        ...filterParams
+      };
+      
+      const response = await axios.get('http://localhost:5000/api/admin/legal-documents', { params });
+      setDocuments(response.data.data);
+      setPagination({
+        current: response.data.pagination.current,
+        pageSize: pageSize,
+        total: response.data.pagination.totalRecords
+      });
     } catch (error) {
       message.error('Lỗi khi tải dữ liệu văn bản');
       console.error('Error fetching documents:', error);
+    } finally {
       setLoading(false);
     }
   };
@@ -165,23 +168,28 @@ const LegalDocuments = () => {
 
   const handleSubmit = async (values) => {
     try {
-      // In real implementation, this would be an API call
-      message.success(editingDocument ? 'Cập nhật văn bản thành công' : 'Tạo văn bản thành công');
+      if (editingDocument) {
+        await axios.put(`http://localhost:5000/api/admin/legal-documents/${editingDocument._id}`, values);
+        message.success('Cập nhật văn bản thành công');
+      } else {
+        await axios.post('http://localhost:5000/api/admin/legal-documents', values);
+        message.success('Tạo văn bản thành công');
+      }
       setModalVisible(false);
       fetchDocuments(pagination.current, pagination.pageSize, filters);
     } catch (error) {
-      message.error('Có lỗi xảy ra');
+      message.error(error.response?.data?.message || 'Có lỗi xảy ra');
     }
   };
 
   // Handle delete
   const handleDelete = async (id) => {
     try {
-      // In real implementation, this would be an API call
+      await axios.delete(`http://localhost:5000/api/admin/legal-documents/${id}`);
       message.success('Xóa văn bản thành công');
       fetchDocuments(pagination.current, pagination.pageSize, filters);
     } catch (error) {
-      message.error('Có lỗi xảy ra');
+      message.error(error.response?.data?.message || 'Có lỗi xảy ra');
     }
   };
 
