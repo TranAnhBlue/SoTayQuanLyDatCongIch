@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Layout, Menu, Typography, Avatar, Divider, Space, Input } from 'antd';
 import { 
   AppstoreOutlined, 
@@ -23,6 +23,20 @@ const AdminLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout } = useAuth();
+  const [userKey, setUserKey] = useState(Date.now());
+
+  // Listen for user updates
+  useEffect(() => {
+    const handleUserUpdate = () => {
+      setUserKey(Date.now());
+    };
+    
+    window.addEventListener('user-updated', handleUserUpdate);
+    
+    return () => {
+      window.removeEventListener('user-updated', handleUserUpdate);
+    };
+  }, []);
 
   const handleMenuClick = (e) => {
     navigate(e.key);
@@ -87,7 +101,8 @@ const AdminLayout = () => {
               <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.7)', lineHeight: '1.2', marginTop: '2px' }}>{user?.position || 'Phê duyệt & Điều hành'}</div>
             </div>
             <Avatar 
-              src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.name || 'Admin'}`} 
+              key={userKey}
+              src={user?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.name || 'Admin'}`} 
               size={32} 
               style={{ cursor: 'pointer' }}
               onClick={() => navigate('/profile')}

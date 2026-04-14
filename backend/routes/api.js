@@ -1,39 +1,23 @@
 const express = require('express');
 const router = express.Router();
-const multer = require('multer');
-const path = require('path');
 const renterController = require('../controllers/renterController');
 const adminController = require('../controllers/adminController');
 const authController = require('../controllers/authController');
+const fileController = require('../controllers/fileController');
 const { protect, authorize } = require('../middleware/auth');
 
-// Multer configuration for avatar upload
-const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        cb(null, 'uploads/avatars/');
-    },
-    filename: function (req, file, cb) {
-        cb(null, `avatar-${req.user.id}-${Date.now()}${path.extname(file.originalname)}`);
-    }
-});
+// Import Cloudinary utilities
+const { 
+    uploadAvatar, 
+    uploadLandImage, 
+    uploadDocument, 
+    uploadCertificate, 
+    uploadGeneral,
+    testCloudinaryConnection 
+} = require('../utils/cloudinary');
 
-const upload = multer({
-    storage: storage,
-    limits: {
-        fileSize: 2 * 1024 * 1024 // 2MB limit
-    },
-    fileFilter: function (req, file, cb) {
-        const allowedTypes = /jpeg|jpg|png/;
-        const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-        const mimetype = allowedTypes.test(file.mimetype);
-
-        if (mimetype && extname) {
-            return cb(null, true);
-        } else {
-            cb(new Error('Chỉ hỗ trợ file ảnh (JPEG, JPG, PNG)'));
-        }
-    }
-});
+// Test Cloudinary connection on startup
+testCloudinaryConnection();
 
 // ======================================================
 //  AUTH ROUTES
@@ -46,11 +30,38 @@ router.put('/auth/change-password', protect, authController.changePassword);
 router.post('/auth/forgotpassword', authController.forgotPassword);
 router.post('/auth/verifyotp', authController.verifyOTP);
 router.post('/auth/resetpassword', authController.resetPassword);
-router.post('/auth/upload-avatar', protect, upload.single('avatar'), authController.uploadAvatar);
 
 // Google OAuth routes
 router.get('/auth/google', authController.googleAuth);
 router.get('/auth/google/callback', authController.googleCallback);
+
+// ======================================================
+//  FILE UPLOAD ROUTES (Protected)
+// ======================================================
+
+// Avatar upload (for all authenticated users)
+router.post('/auth/upload-avatar', protect, uploadAvatar.single('avatar'), authController.uploadAvatar);
+
+// Land images upload (Admin/Officer only)
+router.post('/files/land-images/:landId', protect, authorize('admin', 'officer'), uploadLandImage.array('images', 10), fileController.uploadLandImages);
+
+// Documents upload (All authenticated users)
+router.post('/files/documents', protect, uploadDocument.array('documents', 5), fileController.uploadDocuments);
+
+// Certificates upload (All authenticated users)
+router.post('/files/certificates/:contractId', protect, uploadCertificate.array('certificates', 5), fileController.uploadCertificates);
+
+// General file upload (All authenticated users)
+router.post('/files/upload', protect, uploadGeneral.array('files', 10), fileController.uploadGeneral);
+
+// Upload from base64 (All authenticated users)
+router.post('/files/upload-base64', protect, fileController.uploadFromBase64);
+
+// Delete file (All authenticated users - but should check ownership)
+router.delete('/files/:publicId', protect, fileController.deleteFile);
+
+// Get optimized image URL (Public)
+router.get('/files/optimize/:publicId', fileController.getOptimizedImage);
 
 // ======================================================
 //  RENTER PORTAL ROUTES (Protected)

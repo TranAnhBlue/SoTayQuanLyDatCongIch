@@ -16,6 +16,7 @@ import ForgotPassword from './pages/Auth/ForgotPassword';
 import VerifyOTP from './pages/Auth/VerifyOTP';
 import ResetPassword from './pages/Auth/ResetPassword';
 import ProfileSettings from './pages/Profile/ProfileSettings';
+import FileUploadTest from './pages/Test/FileUploadTest';
 import ProtectedRoute from './components/Auth/ProtectedRoute';
 import AdminLayout from './layouts/AdminLayout';
 import RenterLayout from './layouts/RenterLayout';
@@ -70,6 +71,16 @@ function App() {
             element={
               <ProtectedRoute allowedRoles={['admin', 'officer', 'renter']}>
                 <ProfileSettings />
+              </ProtectedRoute>
+            } 
+          />
+
+          {/* File Upload Test - Available for all authenticated users */}
+          <Route 
+            path="/test/file-upload" 
+            element={
+              <ProtectedRoute allowedRoles={['admin', 'officer', 'renter']}>
+                <FileUploadTest />
               </ProtectedRoute>
             } 
           />

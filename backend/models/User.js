@@ -31,6 +31,10 @@ const userSchema = new mongoose.Schema({
         type: String,
         default: null
     },
+    avatarPublicId: {
+        type: String,
+        default: null // Cloudinary public ID để có thể xóa file
+    },
     password: {
         type: String,
         required: [true, 'Vui lòng nhập mật khẩu'],

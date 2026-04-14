@@ -45,6 +45,7 @@ const ProfileSettings = () => {
   const [passwordStrength, setPasswordStrength] = useState(0);
   const [avatarModalVisible, setAvatarModalVisible] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [avatarKey, setAvatarKey] = useState(Date.now()); // Force re-render avatar
 
   // Hàm quay về dashboard theo role
   const handleGoBack = () => {
@@ -62,18 +63,44 @@ const ProfileSettings = () => {
       const formData = new FormData();
       formData.append('avatar', file);
       
-      const response = await axios.post('/api/auth/upload-avatar', formData, {
+      // Get token from localStorage
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('Vui lòng đăng nhập lại');
+      }
+      
+      console.log('Uploading avatar:', file.name, file.size, 'bytes');
+      
+      const response = await axios.post('http://localhost:5000/api/auth/upload-avatar', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
+          'Authorization': `Bearer ${token}`
         },
       });
       
-      // Cập nhật user với avatar mới
-      updateUser({ avatar: response.data.avatarUrl });
-      message.success('Cập nhật avatar thành công!');
-      setAvatarModalVisible(false);
+      console.log('Upload response:', response.data);
+      
+      if (response.data.success) {
+        // Cập nhật user với avatar mới
+        const updatedUser = { ...user, avatar: response.data.avatarUrl };
+        updateUser(updatedUser);
+        message.success('Cập nhật avatar thành công!');
+        setAvatarModalVisible(false);
+        
+        // Force refresh avatar display
+        setAvatarKey(Date.now());
+        
+        // Trigger a re-render of the entire app to update header/sidebar
+        setTimeout(() => {
+          window.dispatchEvent(new Event('user-updated'));
+        }, 500);
+      } else {
+        throw new Error(response.data.message || 'Upload thất bại');
+      }
     } catch (error) {
-      message.error('Upload avatar thất bại!');
+      console.error('Avatar upload error:', error);
+      console.error('Error response:', error.response?.data);
+      message.error(error.response?.data?.message || error.message || 'Upload avatar thất bại!');
     } finally {
       setUploading(false);
     }
@@ -85,17 +112,25 @@ const ProfileSettings = () => {
     listType: 'picture-card',
     className: 'avatar-uploader',
     showUploadList: false,
+    accept: 'image/*',
     beforeUpload: (file) => {
-      const isJpgOrPng = file.type === 'image/jpeg' || file.type === 'image/png';
-      if (!isJpgOrPng) {
-        message.error('Chỉ hỗ trợ file JPG/PNG!');
+      console.log('File selected:', file);
+      
+      // Kiểm tra loại file
+      const isImage = file.type.startsWith('image/');
+      if (!isImage) {
+        message.error('Chỉ hỗ trợ file ảnh (JPG, PNG, GIF, WebP)!');
         return false;
       }
-      const isLt2M = file.size / 1024 / 1024 < 2;
-      if (!isLt2M) {
-        message.error('Kích thước file phải nhỏ hơn 2MB!');
+      
+      // Kiểm tra kích thước file (5MB)
+      const isLt5M = file.size / 1024 / 1024 < 5;
+      if (!isLt5M) {
+        message.error('Kích thước file phải nhỏ hơn 5MB!');
         return false;
       }
+      
+      console.log('File validation passed, uploading...');
       handleAvatarUpload(file);
       return false; // Prevent default upload
     },
@@ -103,13 +138,36 @@ const ProfileSettings = () => {
   const handleUpdateProfile = async (values) => {
     setEditLoading(true);
     try {
-      const response = await axios.put('/api/auth/profile', values);
+      console.log('Updating profile with values:', values);
       
-      // Cập nhật user trong context
-      updateUser(response.data.user);
-      message.success('Cập nhật thông tin thành công!');
+      // Get token from localStorage
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('Vui lòng đăng nhập lại');
+      }
+      
+      const response = await axios.put('http://localhost:5000/api/auth/profile', values, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      console.log('Profile update response:', response.data);
+      
+      if (response.data.success) {
+        // Cập nhật user trong context
+        updateUser(response.data.user);
+        message.success('Cập nhật thông tin thành công!');
+        
+        // Force refresh để cập nhật UI
+        setAvatarKey(Date.now());
+      } else {
+        throw new Error(response.data.message || 'Cập nhật thất bại');
+      }
     } catch (error) {
-      message.error(error.response?.data?.message || 'Cập nhật thông tin thất bại!');
+      console.error('Profile update error:', error);
+      message.error(error.response?.data?.message || error.message || 'Cập nhật thông tin thất bại!');
     } finally {
       setEditLoading(false);
     }
@@ -119,15 +177,35 @@ const ProfileSettings = () => {
   const handleChangePassword = async (values) => {
     setPasswordLoading(true);
     try {
-      await axios.put('/api/auth/change-password', {
+      console.log('Changing password...');
+      
+      // Get token from localStorage
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('Vui lòng đăng nhập lại');
+      }
+      
+      const response = await axios.put('http://localhost:5000/api/auth/change-password', {
         currentPassword: values.currentPassword,
         newPassword: values.newPassword
+      }, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
       });
       
-      message.success('Đổi mật khẩu thành công!');
-      passwordForm.resetFields();
+      console.log('Password change response:', response.data);
+      
+      if (response.data.success) {
+        message.success('Đổi mật khẩu thành công!');
+        passwordForm.resetFields();
+      } else {
+        throw new Error(response.data.message || 'Đổi mật khẩu thất bại');
+      }
     } catch (error) {
-      message.error(error.response?.data?.message || 'Đổi mật khẩu thất bại!');
+      console.error('Password change error:', error);
+      message.error(error.response?.data?.message || error.message || 'Đổi mật khẩu thất bại!');
     } finally {
       setPasswordLoading(false);
     }
@@ -320,6 +398,7 @@ const ProfileSettings = () => {
           <Card style={{ marginBottom: 24, textAlign: 'center' }}>
             <div style={{ position: 'relative', display: 'inline-block', marginBottom: '16px' }}>
               <Avatar 
+                key={avatarKey}
                 size={120} 
                 src={user?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.name || 'User'}`}
                 style={{ border: '4px solid #f0f0f0' }}
@@ -607,6 +686,7 @@ const ProfileSettings = () => {
       >
         <div style={{ textAlign: 'center', padding: '20px 0' }}>
           <Avatar 
+            key={avatarKey}
             size={120} 
             src={user?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.name || 'User'}`}
             style={{ marginBottom: '20px' }}

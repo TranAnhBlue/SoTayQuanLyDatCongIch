@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Layout, Menu, Button, Avatar, Space, Typography, Divider } from 'antd';
 import {
   BellOutlined,
@@ -21,6 +21,20 @@ const RenterLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout } = useAuth();
+  const [userKey, setUserKey] = useState(Date.now());
+
+  // Listen for user updates
+  useEffect(() => {
+    const handleUserUpdate = () => {
+      setUserKey(Date.now());
+    };
+    
+    window.addEventListener('user-updated', handleUserUpdate);
+    
+    return () => {
+      window.removeEventListener('user-updated', handleUserUpdate);
+    };
+  }, []);
 
   // Top navigation items (header)
   const headerItems = [
@@ -64,8 +78,9 @@ const RenterLayout = () => {
         <Space size="large">
           <BellOutlined style={{ color: 'white', fontSize: '18px', cursor: 'pointer' }} />
           <Avatar 
+            key={userKey}
             icon={<UserOutlined />} 
-            src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.name || 'User'}`}
+            src={user?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.name || 'User'}`}
             style={{ backgroundColor: '#ffffff33', cursor: 'pointer' }} 
             onClick={() => navigate('/profile')}
           />
@@ -77,7 +92,7 @@ const RenterLayout = () => {
         <Sider width={260} theme="light" style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 64px)' }}>
           <div style={{ padding: '24px 0', flex: 1, display: 'flex', flexDirection: 'column' }}>
             <div style={{ padding: '0 24px', display: 'flex', alignItems: 'center', marginBottom: '32px' }}>
-            <Avatar size={40} src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.name || 'User'}`} />
+            <Avatar key={userKey} size={40} src={user?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.name || 'User'}`} />
             <div style={{ marginLeft: '12px' }}>
               <div style={{ fontWeight: 600, fontSize: '14px', lineHeight: '1.2' }}>{user?.name || 'Người thuê đất'}</div>
               <div style={{ fontSize: '10px', color: '#8c8c8c', textTransform: 'uppercase', marginTop: '4px' }}>{user?.email || 'HỆ THỐNG QUẢN LÝ'}</div>

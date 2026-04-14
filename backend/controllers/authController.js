@@ -282,28 +282,63 @@ exports.changePassword = async (req, res) => {
 // @access  Private
 exports.uploadAvatar = async (req, res) => {
     try {
+        console.log('📸 Avatar upload request received');
+        console.log('User ID:', req.user?.id);
+        console.log('File info:', req.file ? {
+            filename: req.file.filename,
+            originalname: req.file.originalname,
+            size: req.file.size,
+            mimetype: req.file.mimetype,
+            path: req.file.path
+        } : 'No file');
+
         if (!req.file) {
+            console.log('❌ No file in request');
             return res.status(400).json({ message: 'Vui lòng chọn file ảnh' });
         }
 
         const user = await User.findById(req.user.id);
         if (!user) {
+            console.log('❌ User not found:', req.user.id);
             return res.status(404).json({ message: 'Không tìm thấy người dùng' });
         }
 
-        // Tạo URL avatar (trong thực tế sẽ upload lên cloud storage)
-        const avatarUrl = `/uploads/avatars/${req.file.filename}`;
+        console.log('👤 Current user:', user.name, user.email);
+
+        // Cloudinary đã tự động upload file, chỉ cần lấy URL
+        const avatarUrl = req.file.path; // Cloudinary trả về secure_url trong path
+        const publicId = req.file.filename; // Public ID để có thể xóa sau này
         
+        console.log('🌤️ Cloudinary upload result:');
+        console.log('   URL:', avatarUrl);
+        console.log('   Public ID:', publicId);
+        
+        // Xóa avatar cũ nếu có (và không phải avatar mặc định)
+        if (user.avatarPublicId && user.avatarPublicId !== 'default') {
+            try {
+                const { deleteFile } = require('../utils/cloudinary');
+                await deleteFile(user.avatarPublicId);
+                console.log('✅ Deleted old avatar from Cloudinary:', user.avatarPublicId);
+            } catch (deleteError) {
+                console.log('⚠️ Could not delete old avatar:', deleteError.message);
+            }
+        }
+        
+        // Cập nhật user với avatar mới
         user.avatar = avatarUrl;
+        user.avatarPublicId = publicId;
         await user.save();
+
+        console.log('✅ Avatar updated successfully for user:', user.name);
 
         res.status(200).json({
             success: true,
             avatarUrl: avatarUrl,
+            publicId: publicId,
             message: 'Cập nhật avatar thành công'
         });
     } catch (error) {
-        console.error('[Upload avatar]', error);
+        console.error('❌ [Upload avatar] Error:', error);
         res.status(500).json({ message: 'Lỗi máy chủ', error: error.message });
     }
 };

@@ -34,6 +34,20 @@ export const AuthProvider = ({ children }) => {
   // Khởi tạo: Kiểm tra session khi app load
   useEffect(() => {
     initializeAuth();
+    
+    // Listen for user updates from other components
+    const handleUserUpdate = () => {
+      const storedUser = getUser();
+      if (storedUser) {
+        setUser(storedUser);
+      }
+    };
+    
+    window.addEventListener('user-updated', handleUserUpdate);
+    
+    return () => {
+      window.removeEventListener('user-updated', handleUserUpdate);
+    };
   }, []);
 
   // Khởi tạo authentication state
