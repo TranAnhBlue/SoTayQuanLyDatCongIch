@@ -52,7 +52,7 @@ const userSchema = new mongoose.Schema({
     },
     lastPasswordChange: {
         type: Date,
-        default: Date.now
+        default: null // Không set mặc định, chỉ set khi thực sự đổi mật khẩu
     },
     resetPasswordOTP: String,
     resetPasswordOTPExpire: Date

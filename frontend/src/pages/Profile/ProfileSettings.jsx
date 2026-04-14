@@ -428,12 +428,12 @@ const ProfileSettings = () => {
               </Form.Item>
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '24px' }}>
-                <Button 
+                {/* <Button 
                   size="large"
                   style={{ borderRadius: '6px', minWidth: '100px' }}
                 >
                   Hủy bỏ
-                </Button>
+                </Button> */}
                 <Button 
                   type="primary" 
                   htmlType="submit"
@@ -443,7 +443,7 @@ const ProfileSettings = () => {
                     backgroundColor: '#1e7e34', 
                     borderRadius: '6px', 
                     minWidth: '120px',
-                    fontWeight: 600
+                    fontWeight: 600,
                   }}
                 >
                   Lưu Thay Đổi
@@ -824,29 +824,47 @@ const ProfileSettings = () => {
               )}
             </Card>
 
-            {/* Last Update Info */}
-            <div style={{ 
-              backgroundColor: '#e6f7ff', 
-              border: '1px solid #91d5ff',
-              borderRadius: '8px',
-              padding: '16px',
-              marginTop: '16px'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                <ClockCircleOutlined style={{ color: '#1890ff' }} />
-                <Text strong style={{ fontSize: '13px', color: '#1890ff' }}>LẦN ĐỔI GẦN NHẤT</Text>
+            {/* Last Update Info - chỉ hiển thị khi đã từng đổi mật khẩu */}
+            {user?.lastPasswordChange && (
+              <div style={{ 
+                backgroundColor: '#e6f7ff', 
+                border: '1px solid #91d5ff',
+                borderRadius: '8px',
+                padding: '16px',
+                marginTop: '16px'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                  <ClockCircleOutlined style={{ color: '#1890ff' }} />
+                  <Text strong style={{ fontSize: '13px', color: '#1890ff' }}>LẦN ĐỔI GẦN NHẤT</Text>
+                </div>
+                <Text style={{ fontSize: '14px', fontWeight: 600 }}>
+                  {new Date(user.lastPasswordChange).toLocaleDateString('vi-VN', {
+                    day: '2-digit',
+                    month: '2-digit', 
+                    year: 'numeric'
+                  })}
+                </Text>
               </div>
-              <Text style={{ fontSize: '14px', fontWeight: 600 }}>
-                {user?.lastPasswordChange 
-                  ? new Date(user.lastPasswordChange).toLocaleDateString('vi-VN', {
-                      day: '2-digit',
-                      month: '2-digit', 
-                      year: 'numeric'
-                    })
-                  : 'Chưa có thông tin'
-                }
-              </Text>
-            </div>
+            )}
+
+            {/* Thông báo cho tài khoản mới */}
+            {!user?.lastPasswordChange && (
+              <div style={{ 
+                backgroundColor: '#fff7e6', 
+                border: '1px solid #ffd591',
+                borderRadius: '8px',
+                padding: '16px',
+                marginTop: '16px'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                  <SafetyCertificateOutlined style={{ color: '#fa8c16' }} />
+                  <Text strong style={{ fontSize: '13px', color: '#fa8c16' }}>TÀI KHOẢN MỚI</Text>
+                </div>
+                <Text style={{ fontSize: '13px', color: '#8c8c8c' }}>
+                  Chưa có lịch sử đổi mật khẩu. Khuyến nghị đổi mật khẩu định kỳ để bảo mật tài khoản.
+                </Text>
+              </div>
+            )}
 
             {/* Security Quote */}
             <div style={{ 
