@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, Row, Col, Typography, Button, Table, Tag, Select, Space, Divider } from 'antd';
 import {
   FileTextOutlined,
@@ -10,54 +10,57 @@ import {
   FilePdfOutlined,
   SendOutlined
 } from '@ant-design/icons';
+import axios from 'axios';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
 
 const FinancialReport = () => {
   const [selectedPeriod, setSelectedPeriod] = useState('q4-2023');
+  const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalRecords, setTotalRecords] = useState(0);
 
-  const stats = {
-    totalArea: 1428.50,
-    totalUnits: 8420,
-    totalCollected: 7157,
-    totalDebt: 1263,
-    completionRate: 85,
-    debtRate: 15
-  };
+  const [stats, setStats] = useState({
+    totalArea: 0,
+    totalUnits: 0,
+    totalCollected: 0,
+    totalDebt: 0,
+    completionRate: 0,
+    debtRate: 0
+  });
 
-  const reportData = [
-    {
-      key: '1',
-      code: 'DV-2023-001',
-      unit: 'HTX Nông nghiệp Tân Bình',
-      unitCode: 'HT',
-      area: 42.50,
-      totalAmount: 450000000,
-      paid: 450000000,
-      remaining: 0
-    },
-    {
-      key: '2',
-      code: 'DV-2023-014',
-      unit: 'Cty TNHH Nuôi trồng Thủy sản',
-      unitCode: 'NT',
-      area: 128.00,
-      totalAmount: 1280000000,
-      paid: 960000000,
-      remaining: 320000000
-    },
-    {
-      key: '3',
-      code: 'DV-2023-052',
-      unit: 'Ông Lê Văn Hùng',
-      unitCode: 'LH',
-      area: 5.20,
-      totalAmount: 52000000,
-      paid: 45000000,
-      remaining: 7000000
-    }
-  ];
+  const [reportData, setReportData] = useState([]);
+
+  // Fetch financial reports
+  useEffect(() => {
+    const fetchReports = async () => {
+      try {
+        setLoading(true);
+        const token = localStorage.getItem('token');
+        const response = await axios.get('http://localhost:5000/api/finance/reports', {
+          params: {
+            period: selectedPeriod,
+            page: currentPage,
+            limit: 10
+          },
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+        if (response.data.success) {
+          setStats(response.data.data.stats);
+          setReportData(response.data.data.reportData);
+          setTotalRecords(response.data.data.total);
+        }
+      } catch (error) {
+        console.error('Error fetching financial reports:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchReports();
+  }, [selectedPeriod, currentPage]);
 
   const columns = [
     {
@@ -269,18 +272,20 @@ const FinancialReport = () => {
       <Card>
         <div style={{ marginBottom: '16px' }}>
           <Text type="secondary" style={{ fontSize: '12px' }}>
-            Hiển thị 3 trong số 128 bản ghi
+            Hiển thị {Math.min((currentPage - 1) * 10 + 1, totalRecords)} - {Math.min(currentPage * 10, totalRecords)} trong số {totalRecords} bản ghi
           </Text>
         </div>
 
         <Table 
           columns={columns}
           dataSource={reportData}
+          loading={loading}
           pagination={{
-            current: 1,
+            current: currentPage,
             pageSize: 10,
-            total: 128,
-            showSizeChanger: false
+            total: totalRecords,
+            showSizeChanger: false,
+            onChange: (page) => setCurrentPage(page)
           }}
         />
       </Card>

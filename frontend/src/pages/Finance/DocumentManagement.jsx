@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, Row, Col, Typography, Button, Table, Tag, Select, Input, Space } from 'antd';
 import {
   FileTextOutlined,
@@ -10,6 +10,7 @@ import {
   MoreOutlined
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -18,60 +19,55 @@ const DocumentManagement = () => {
   const navigate = useNavigate();
   const [selectedType, setSelectedType] = useState('all');
   const [selectedTime, setSelectedTime] = useState('month');
+  const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalDocuments, setTotalDocuments] = useState(0);
+  const [documents, setDocuments] = useState([]);
 
-  const stats = {
-    totalDocuments: 1284,
-    pendingApproval: 42,
-    totalValue: 2450.8,
-    collectionRate: 82
-  };
+  const [stats, setStats] = useState({
+    totalDocuments: 0,
+    pendingApproval: 0,
+    totalValue: 0,
+    collectionRate: 0
+  });
 
-  const documents = [
-    {
-      key: '1',
-      code: 'PT-2023-00452',
-      date: '12/10/2023',
-      payer: 'Nguyễn Nam Anh',
-      payerAvatar: 'NN',
-      purpose: 'Thu tiền thuê đất lô ...',
-      amount: 12500000,
-      status: 'verified',
-      statusText: 'VERIFIED'
-    },
-    {
-      key: '2',
-      code: 'HD-2023-0891',
-      date: '11/10/2023',
-      payer: 'CTCP Đầu tư Việt Xanh',
-      payerAvatar: 'ĐV',
-      purpose: 'Phí hạ tầng ký thuật ...',
-      amount: 85200000,
-      status: 'pending',
-      statusText: 'PENDING'
-    },
-    {
-      key: '3',
-      code: 'PT-2023-00451',
-      date: '10/10/2023',
-      payer: 'Trần Lan Hương',
-      payerAvatar: 'TL',
-      purpose: 'Phạt chậm nộp thuế ...',
-      amount: 2400000,
-      status: 'canceled',
-      statusText: 'CANCELED'
-    },
-    {
-      key: '4',
-      code: 'PT-2023-00450',
-      date: '09/10/2023',
-      payer: 'Dương Hiếu Minh',
-      payerAvatar: 'DH',
-      purpose: 'Thu phí đo đạc trích l...',
-      amount: 1200000,
-      status: 'verified',
-      statusText: 'VERIFIED'
-    }
-  ];
+  // Fetch documents data
+  useEffect(() => {
+    const fetchDocuments = async () => {
+      try {
+        setLoading(true);
+        const token = localStorage.getItem('token');
+        const response = await axios.get('http://localhost:5000/api/finance/documents', {
+          params: {
+            type: selectedType,
+            time: selectedTime,
+            page: currentPage,
+            limit: 10
+          },
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+        if (response.data.success) {
+          setDocuments(response.data.data.documents);
+          setTotalDocuments(response.data.data.total);
+          
+          // Calculate stats from data
+          setStats({
+            totalDocuments: response.data.data.total,
+            pendingApproval: response.data.data.documents.filter(d => d.status === 'pending').length,
+            totalValue: response.data.data.documents.reduce((sum, d) => sum + d.amount, 0) / 1000000000,
+            collectionRate: 82 // This would need a separate calculation
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching documents:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDocuments();
+  }, [selectedType, selectedTime, currentPage]);
 
   const columns = [
     {
@@ -289,19 +285,21 @@ const DocumentManagement = () => {
 
         <div style={{ marginBottom: '16px' }}>
           <Text type="secondary" style={{ fontSize: '12px' }}>
-            Hiển thị 1-10 trong số 1.284 kết quả
+            Hiển thị {Math.min((currentPage - 1) * 10 + 1, totalDocuments)} - {Math.min(currentPage * 10, totalDocuments)} trong số {totalDocuments.toLocaleString()} kết quả
           </Text>
         </div>
 
         <Table 
           columns={columns}
           dataSource={documents}
+          loading={loading}
           pagination={{
-            current: 1,
+            current: currentPage,
             pageSize: 10,
-            total: 1284,
+            total: totalDocuments,
             showSizeChanger: false,
-            style: { marginTop: '24px' }
+            style: { marginTop: '24px' },
+            onChange: (page) => setCurrentPage(page)
           }}
         />
 

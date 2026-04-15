@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, Row, Col, Typography, Button, Table, Tag, Select, Input, Space, Progress } from 'antd';
 import {
   WarningOutlined,
@@ -10,64 +10,59 @@ import {
   MoreOutlined,
   CheckCircleOutlined
 } from '@ant-design/icons';
+import axios from 'axios';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
 
 const DebtManagement = () => {
-  const stats = {
-    totalEstimate: 142.5,
-    collected: 116.8,
-    overdue: 25.7,
-    collectionRate: 82
-  };
+  const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalRecords, setTotalRecords] = useState(0);
+  const [selectedStatus, setSelectedStatus] = useState('all');
+  const [selectedZone, setSelectedZone] = useState('all');
+  const [selectedTime, setSelectedTime] = useState('q3');
 
-  const debtData = [
-    {
-      key: '1',
-      name: 'Công ty TNHH MTV Xây dựng Đông A',
-      taxCode: '0312456789',
-      area: 'Khu công nghiệp Tân Bình-Lô B3',
-      totalAmount: 2450000000,
-      paid: 2450000000,
-      remaining: 0,
-      status: 'paid',
-      statusText: 'ĐÃ NỘP ĐỦ'
-    },
-    {
-      key: '2',
-      name: 'Hộ kinh doanh Nguyễn Văn A',
-      taxCode: '0123456789-001',
-      area: 'Chợ Bến Thành-Quầy 1',
-      totalAmount: 125000000,
-      paid: 45000000,
-      remaining: 80000000,
-      status: 'overdue',
-      statusText: 'NỢ TRONG HẠN'
-    },
-    {
-      key: '3',
-      name: 'HTX Nông nghiệp Công nghệ cao Xanh',
-      taxCode: '0350587654',
-      area: 'Khu B-Nhà kho',
-      totalAmount: 540000000,
-      paid: 0,
-      remaining: 540000000,
-      status: 'critical',
-      statusText: 'NỢ QUÁ HẠN'
-    },
-    {
-      key: '4',
-      name: 'Trần Thị B (Cá nhân)',
-      taxCode: '0315RB2231',
-      area: 'Quận 3-VTB-14',
-      totalAmount: 12500000,
-      paid: 12500000,
-      remaining: 0,
-      status: 'paid',
-      statusText: 'ĐÃ NỘP ĐỦ'
-    }
-  ];
+  const [stats, setStats] = useState({
+    totalEstimate: 0,
+    collected: 0,
+    overdue: 0,
+    collectionRate: 0
+  });
+
+  const [debtData, setDebtData] = useState([]);
+
+  // Fetch debt management data
+  useEffect(() => {
+    const fetchDebtData = async () => {
+      try {
+        setLoading(true);
+        const token = localStorage.getItem('token');
+        const response = await axios.get('http://localhost:5000/api/finance/debt', {
+          params: {
+            status: selectedStatus,
+            zone: selectedZone,
+            time: selectedTime,
+            page: currentPage,
+            limit: 10
+          },
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+        if (response.data.success) {
+          setStats(response.data.data.stats);
+          setDebtData(response.data.data.debtData);
+          setTotalRecords(response.data.data.total);
+        }
+      } catch (error) {
+        console.error('Error fetching debt data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDebtData();
+  }, [selectedStatus, selectedZone, selectedTime, currentPage]);
 
   const columns = [
     {
@@ -258,7 +253,7 @@ const DebtManagement = () => {
           <Space size="middle">
             <div>
               <Text type="secondary" style={{ fontSize: '12px', marginRight: '8px' }}>LOẠI</Text>
-              <Select defaultValue="all" style={{ width: 180 }}>
+              <Select value={selectedStatus} onChange={setSelectedStatus} style={{ width: 180 }}>
                 <Option value="all">Tất cả trạng thái</Option>
                 <Option value="paid">Đã nộp đủ</Option>
                 <Option value="overdue">Nợ trong hạn</Option>
@@ -268,7 +263,7 @@ const DebtManagement = () => {
 
             <div>
               <Text type="secondary" style={{ fontSize: '12px', marginRight: '8px' }}>MỘI KHU VỰC</Text>
-              <Select defaultValue="all" style={{ width: 150 }}>
+              <Select value={selectedZone} onChange={setSelectedZone} style={{ width: 150 }}>
                 <Option value="all">Tất cả</Option>
                 <Option value="zone-a">Khu A</Option>
                 <Option value="zone-b">Khu B</Option>
@@ -278,7 +273,7 @@ const DebtManagement = () => {
 
             <div>
               <Text type="secondary" style={{ fontSize: '12px', marginRight: '8px' }}>THỜI GIAN</Text>
-              <Select defaultValue="q3" style={{ width: 120 }}>
+              <Select value={selectedTime} onChange={setSelectedTime} style={{ width: 120 }}>
                 <Option value="q1">Q1 - 2024</Option>
                 <Option value="q2">Q2 - 2024</Option>
                 <Option value="q3">Q3 - 2024</Option>
@@ -302,18 +297,20 @@ const DebtManagement = () => {
       <Card title="DANH SÁCH HỢP THUÊ & CÔNG NỢ CHI TIẾT">
         <div style={{ marginBottom: '16px' }}>
           <Text type="secondary" style={{ fontSize: '12px' }}>
-            Hiển thị 12 / 1.420 kết quả
+            Hiển thị {Math.min((currentPage - 1) * 10 + 1, totalRecords)} - {Math.min(currentPage * 10, totalRecords)} / {totalRecords} kết quả
           </Text>
         </div>
 
         <Table 
           columns={columns}
           dataSource={debtData}
+          loading={loading}
           pagination={{
-            current: 1,
+            current: currentPage,
             pageSize: 10,
-            total: 1420,
-            showSizeChanger: false
+            total: totalRecords,
+            showSizeChanger: false,
+            onChange: (page) => setCurrentPage(page)
           }}
         />
       </Card>

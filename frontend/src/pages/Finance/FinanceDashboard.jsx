@@ -16,73 +16,44 @@ const { Title, Text } = Typography;
 const { Option } = Select;
 
 const FinanceDashboard = () => {
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [timeFilter, setTimeFilter] = useState('month');
   const navigate = useNavigate();
 
   const [stats, setStats] = useState({
-    totalRevenue: 12850,
-    totalDebt: 3420,
-    completionRate: 85.4
+    totalRevenue: 0,
+    totalDebt: 0,
+    completionRate: 0
   });
 
-  const [monthlyData, setMonthlyData] = useState([
-    { month: 'Tháng 5', value: 850, type: 'Thực thu' },
-    { month: 'Tháng 5', value: 650, type: 'Kế hoạch' },
-    { month: 'Tháng 6', value: 920, type: 'Thực thu' },
-    { month: 'Tháng 6', value: 700, type: 'Kế hoạch' },
-    { month: 'Tháng 7', value: 1100, type: 'Thực thu' },
-    { month: 'Tháng 7', value: 800, type: 'Kế hoạch' },
-    { month: 'Tháng 8', value: 1250, type: 'Thực thu' },
-    { month: 'Tháng 8', value: 900, type: 'Kế hoạch' },
-    { month: 'Tháng 9', value: 1180, type: 'Thực thu' },
-    { month: 'Tháng 9', value: 850, type: 'Kế hoạch' },
-    { month: 'Tháng 10', value: 1350, type: 'Thực thu' },
-    { month: 'Tháng 10', value: 950, type: 'Kế hoạch' }
-  ]);
+  const [monthlyData, setMonthlyData] = useState([]);
+  const [urgentItems, setUrgentItems] = useState([]);
 
-  const [urgentItems, setUrgentItems] = useState([
-    {
-      id: 1,
-      name: 'Nguyễn Văn Thành',
-      area: 'Khu A - Lô 24',
-      amount: 45.2,
-      dueDate: 'Quá hạn 45 ngày',
-      status: 'urgent'
-    },
-    {
-      id: 2,
-      name: 'Lê Minh Hùng',
-      area: 'Khu B - Cụm hàng 09',
-      amount: 38.7,
-      dueDate: 'Quá hạn 32 ngày',
-      status: 'urgent'
-    },
-    {
-      id: 3,
-      name: 'Phạm Minh Tuấn',
-      area: 'Khu A - Lô 05',
-      amount: 32.1,
-      dueDate: 'Quá hạn 28 ngày',
-      status: 'warning'
-    },
-    {
-      id: 4,
-      name: 'Hoàng Diệu Hoa',
-      area: 'Khu C - KT-01.11',
-      amount: 27.5,
-      dueDate: 'Quá hạn 21 ngày',
-      status: 'warning'
-    },
-    {
-      id: 5,
-      name: 'Trần Anh Khoa',
-      area: 'Khu B - Kho 01',
-      amount: 22.8,
-      dueDate: 'Quá hạn 15 ngày',
-      status: 'warning'
-    }
-  ]);
+  // Fetch dashboard data
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        setLoading(true);
+        const token = localStorage.getItem('token');
+        const response = await axios.get('http://localhost:5000/api/finance/dashboard', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+        if (response.data.success) {
+          const { stats, monthlyData, urgentItems } = response.data.data;
+          setStats(stats);
+          setMonthlyData(monthlyData);
+          setUrgentItems(urgentItems);
+        }
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, []);
 
   const chartConfig = {
     data: monthlyData,
@@ -150,7 +121,7 @@ const FinanceDashboard = () => {
                 <div style={{ fontSize: '12px', opacity: 0.9 }}>TỔNG NGUỒN THU THỰC TẾ</div>
                 <div style={{ fontSize: '32px', fontWeight: 'bold', marginTop: '4px' }}>
                   {stats.totalRevenue.toLocaleString()} 
-                  <span style={{ fontSize: '16px', marginLeft: '4px' }}>trđ</span>
+                  <span style={{ fontSize: '16px', marginLeft: '4px' }}>tỷ VNĐ</span>
                 </div>
               </div>
             </div>
@@ -179,7 +150,7 @@ const FinanceDashboard = () => {
                 <div style={{ fontSize: '12px', opacity: 0.9 }}>TỔNG CÔNG NỢ HIỆN TẠI</div>
                 <div style={{ fontSize: '32px', fontWeight: 'bold', marginTop: '4px' }}>
                   {stats.totalDebt.toLocaleString()} 
-                  <span style={{ fontSize: '16px', marginLeft: '4px' }}>trđ</span>
+                  <span style={{ fontSize: '16px', marginLeft: '4px' }}>tỷ VNĐ</span>
                 </div>
               </div>
             </div>
@@ -296,7 +267,7 @@ const FinanceDashboard = () => {
                       </div>
                       <div style={{ textAlign: 'right' }}>
                         <div style={{ fontWeight: 'bold', fontSize: '16px', color: '#d9363e' }}>
-                          {item.amount} trđ
+                          {item.amount} triệu VNĐ
                         </div>
                         <div style={{ fontSize: '11px', color: '#8c8c8c' }}>{item.dueDate}</div>
                       </div>

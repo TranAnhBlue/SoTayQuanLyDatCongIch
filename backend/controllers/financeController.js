@@ -14,12 +14,11 @@ exports.getDashboard = async (req, res) => {
         const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
         const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
 
-        // Total revenue (completed transactions)
+        // Total revenue (completed transactions) - Tính tất cả giao dịch thành công
         const totalRevenue = await Transaction.aggregate([
             {
                 $match: {
-                    status: 'completed',
-                    createdAt: { $gte: startOfMonth, $lte: endOfMonth }
+                    status: 'Thành công'
                 }
             },
             {
@@ -30,29 +29,23 @@ exports.getDashboard = async (req, res) => {
             }
         ]);
 
-        // Total debt (pending transactions)
-        const totalDebt = await Transaction.aggregate([
-            {
-                $match: {
-                    status: 'pending',
-                    dueDate: { $lt: currentDate }
-                }
-            },
+        // Total debt (pending transactions) - Tính công nợ từ hợp đồng
+        const totalDebtFromContracts = await Contract.aggregate([
             {
                 $group: {
                     _id: null,
-                    total: { $sum: '$amount' }
+                    total: { $sum: '$currentDebt' }
                 }
             }
         ]);
 
-        // Completion rate
+        // Completion rate - Tính theo tháng hiện tại
         const allTransactions = await Transaction.countDocuments({
-            createdAt: { $gte: startOfMonth, $lte: endOfMonth }
+            date: { $gte: startOfMonth, $lte: endOfMonth }
         });
         const completedTransactions = await Transaction.countDocuments({
-            status: 'completed',
-            createdAt: { $gte: startOfMonth, $lte: endOfMonth }
+            status: 'Thành công',
+            date: { $gte: startOfMonth, $lte: endOfMonth }
         });
         const completionRate = allTransactions > 0 ? (completedTransactions / allTransactions * 100).toFixed(1) : 0;
 
@@ -65,8 +58,8 @@ exports.getDashboard = async (req, res) => {
             const actual = await Transaction.aggregate([
                 {
                     $match: {
-                        status: 'completed',
-                        createdAt: { $gte: monthStart, $lte: monthEnd }
+                        status: 'Thành công',
+                        date: { $gte: monthStart, $lte: monthEnd }
                     }
                 },
                 {
@@ -93,25 +86,22 @@ exports.getDashboard = async (req, res) => {
             });
         }
 
-        // Urgent debt items
-        const urgentItems = await Transaction.find({
-            status: 'pending',
-            dueDate: { $lt: currentDate }
+        // Urgent debt items - Lấy từ hợp đồng có nợ cao
+        const urgentContracts = await Contract.find({
+            currentDebt: { $gt: 0 }
         })
-        .populate('contract', 'contractCode')
-        .populate('user', 'name')
-        .sort({ dueDate: 1 })
+        .populate('renterId', 'name')
+        .sort({ currentDebt: -1 })
         .limit(5);
 
-        const urgentItemsFormatted = urgentItems.map(item => {
-            const daysOverdue = Math.floor((currentDate - item.dueDate) / (1000 * 60 * 60 * 24));
+        const urgentItemsFormatted = urgentContracts.map(contract => {
             return {
-                id: item._id,
-                name: item.user?.name || 'N/A',
-                area: item.contract?.contractCode || 'N/A',
-                amount: (item.amount / 1000000).toFixed(1),
-                dueDate: `Quá hạn ${daysOverdue} ngày`,
-                status: daysOverdue > 30 ? 'urgent' : 'warning'
+                id: contract._id,
+                name: contract.renterName || 'N/A',
+                area: contract.contractCode || 'N/A',
+                amount: (contract.currentDebt / 1000000).toFixed(1),
+                dueDate: `Nợ ${(contract.currentDebt / 1000000).toFixed(1)} triệu`,
+                status: contract.currentDebt > 100000000 ? 'urgent' : 'warning'
             };
         });
 
@@ -120,7 +110,7 @@ exports.getDashboard = async (req, res) => {
             data: {
                 stats: {
                     totalRevenue: totalRevenue.length > 0 ? (totalRevenue[0].total / 1000000000).toFixed(1) : 0,
-                    totalDebt: totalDebt.length > 0 ? (totalDebt[0].total / 1000000000).toFixed(1) : 0,
+                    totalDebt: totalDebtFromContracts.length > 0 ? (totalDebtFromContracts[0].total / 1000000000).toFixed(1) : 0,
                     completionRate: parseFloat(completionRate)
                 },
                 monthlyData,
@@ -176,9 +166,9 @@ exports.getDocuments = async (req, res) => {
         }
 
         const documents = await Transaction.find(query)
-            .populate('user', 'name')
-            .populate('contract', 'contractCode')
-            .sort({ createdAt: -1 })
+            .populate('userId', 'name')
+            .populate('contractId', 'contractCode')
+            .sort({ date: -1 })
             .limit(limit * 1)
             .skip((page - 1) * limit);
 
@@ -186,14 +176,14 @@ exports.getDocuments = async (req, res) => {
 
         const documentsFormatted = documents.map(doc => ({
             key: doc._id,
-            code: doc.transactionCode || `PT-${new Date(doc.createdAt).getFullYear()}-${String(doc._id).slice(-5)}`,
-            date: new Date(doc.createdAt).toLocaleDateString('vi-VN'),
-            payer: doc.user?.name || 'N/A',
-            payerAvatar: doc.user?.name ? doc.user.name.split(' ').map(n => n[0]).join('').slice(0, 2) : 'NA',
+            code: doc.transactionCode || `PT-${new Date(doc.date).getFullYear()}-${String(doc._id).slice(-5)}`,
+            date: new Date(doc.date).toLocaleDateString('vi-VN'),
+            payer: doc.userId?.name || 'N/A',
+            payerAvatar: doc.userId?.name ? doc.userId.name.split(' ').map(n => n[0]).join('').slice(0, 2) : 'NA',
             purpose: doc.description || 'Thu tiền thuê đất',
             amount: doc.amount,
-            status: doc.status === 'completed' ? 'verified' : doc.status === 'pending' ? 'pending' : 'canceled',
-            statusText: doc.status === 'completed' ? 'VERIFIED' : doc.status === 'pending' ? 'PENDING' : 'CANCELED'
+            status: doc.status === 'Thành công' ? 'verified' : doc.status === 'Chờ xử lý' ? 'pending' : 'canceled',
+            statusText: doc.status === 'Thành công' ? 'VERIFIED' : doc.status === 'Chờ xử lý' ? 'PENDING' : 'CANCELED'
         }));
 
         res.status(200).json({
@@ -228,7 +218,7 @@ exports.getDebtManagement = async (req, res) => {
         const totalEstimate = await Transaction.aggregate([
             {
                 $match: {
-                    createdAt: { $gte: startOfQuarter }
+                    date: { $gte: startOfQuarter }
                 }
             },
             {
@@ -242,8 +232,8 @@ exports.getDebtManagement = async (req, res) => {
         const collected = await Transaction.aggregate([
             {
                 $match: {
-                    status: 'completed',
-                    createdAt: { $gte: startOfQuarter }
+                    status: 'Thành công',
+                    date: { $gte: startOfQuarter }
                 }
             },
             {
@@ -257,7 +247,7 @@ exports.getDebtManagement = async (req, res) => {
         const overdue = await Transaction.aggregate([
             {
                 $match: {
-                    status: 'pending',
+                    status: 'Chờ xử lý',
                     dueDate: { $lt: currentDate }
                 }
             },
@@ -361,7 +351,7 @@ exports.getFinancialReports = async (req, res) => {
         const totalUnits = await Transaction.aggregate([
             {
                 $match: {
-                    createdAt: { $gte: startDate, $lte: endDate }
+                    date: { $gte: startDate, $lte: endDate }
                 }
             },
             {
@@ -375,8 +365,8 @@ exports.getFinancialReports = async (req, res) => {
         const totalCollected = await Transaction.aggregate([
             {
                 $match: {
-                    status: 'completed',
-                    createdAt: { $gte: startDate, $lte: endDate }
+                    status: 'Thành công',
+                    date: { $gte: startDate, $lte: endDate }
                 }
             },
             {
@@ -390,8 +380,8 @@ exports.getFinancialReports = async (req, res) => {
         const totalDebt = await Transaction.aggregate([
             {
                 $match: {
-                    status: 'pending',
-                    createdAt: { $gte: startDate, $lte: endDate }
+                    status: 'Chờ xử lý',
+                    date: { $gte: startDate, $lte: endDate }
                 }
             },
             {
@@ -419,12 +409,12 @@ exports.getFinancialReports = async (req, res) => {
 
         const reportData = await Promise.all(contracts.map(async (contract) => {
             const transactions = await Transaction.find({ 
-                contract: contract._id,
-                createdAt: { $gte: startDate, $lte: endDate }
+                contractId: contract._id,
+                date: { $gte: startDate, $lte: endDate }
             });
             
             const totalAmount = transactions.reduce((sum, t) => sum + t.amount, 0);
-            const paid = transactions.filter(t => t.status === 'completed').reduce((sum, t) => sum + t.amount, 0);
+            const paid = transactions.filter(t => t.status === 'Thành công').reduce((sum, t) => sum + t.amount, 0);
             const remaining = totalAmount - paid;
 
             return {
