@@ -12,22 +12,23 @@ exports.getDashboard = async (req, res) => {
     try {
         const userId = req.user.id;
         
-        // Tìm hợp đồng hiện tại của user
-        const contract = await Contract.findOne({ 
+        // Tìm tất cả hợp đồng đang hiệu lực của user
+        const contracts = await Contract.find({ 
             renterId: userId,
             status: 'ĐANG THUÊ'
+        }).sort({ createdAt: -1 }); // Sắp xếp theo mới nhất
+        
+        // Cập nhật tên người thuê từ thông tin user hiện tại
+        contracts.forEach(contract => {
+            contract.renterName = req.user.name;
         });
         
-        // Nếu có hợp đồng, cập nhật tên người thuê từ thông tin user hiện tại
-        if (contract) {
-            contract.renterName = req.user.name;
-        }
-        
+        // Lấy giao dịch gần nhất từ tất cả hợp đồng
         let recentTransactions = [];
-        if (contract) {
-            // Lấy 5 giao dịch gần nhất
+        if (contracts.length > 0) {
+            const contractIds = contracts.map(c => c._id);
             recentTransactions = await Transaction.find({ 
-                contractId: contract._id 
+                contractId: { $in: contractIds }
             })
             .sort({ date: -1 })
             .limit(5);
@@ -35,7 +36,7 @@ exports.getDashboard = async (req, res) => {
         
         res.status(200).json({
             success: true,
-            contract,
+            contracts, // Trả về mảng thay vì 1 object
             recentTransactions
         });
     } catch (error) {

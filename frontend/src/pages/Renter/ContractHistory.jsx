@@ -38,7 +38,7 @@ const { Title, Text } = Typography;
 const { RangePicker } = DatePicker;
 
 const ContractHistory = () => {
-  const { user } = useAuth(); // Get current user info
+  const { user } = useAuth();
   const [contracts, setContracts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [detailModalVisible, setDetailModalVisible] = useState(false);
@@ -49,173 +49,24 @@ const ContractHistory = () => {
     status: ''
   });
 
-  // Mock data for demonstration
-  const mockContracts = [
-    {
-      _id: '1',
-      contractCode: 'HD-2024-001',
-      landParcel: {
-        parcelCode: 'CI-045',
-        location: 'Tờ 22, Thửa 89, Thôn Tây Hồ',
-        area: 2500
-      },
-      startDate: '2024-01-01',
-      endDate: '2024-12-31',
-      status: 'Đang hiệu lực',
-      monthlyRent: 2500000,
-      totalPaid: 7500000,
-      remainingAmount: 22500000,
-      signedDate: '2023-12-15',
-      approvedBy: 'Nguyễn Văn An - Chuyên viên',
-      notes: 'Hợp đồng thuê đất sản xuất nông nghiệp, trồng lúa 2 vụ/năm',
-      paymentHistory: [
-        {
-          _id: 'p1',
-          date: '2024-01-05',
-          amount: 2500000,
-          period: 'Tháng 1/2024',
-          status: 'Đã thanh toán',
-          method: 'Chuyển khoản'
-        },
-        {
-          _id: 'p2',
-          date: '2024-02-05',
-          amount: 2500000,
-          period: 'Tháng 2/2024',
-          status: 'Đã thanh toán',
-          method: 'Tiền mặt'
-        },
-        {
-          _id: 'p3',
-          date: '2024-03-05',
-          amount: 2500000,
-          period: 'Tháng 3/2024',
-          status: 'Đã thanh toán',
-          method: 'Chuyển khoản'
-        }
-      ],
-      documents: [
-        {
-          name: 'Hợp đồng thuê đất gốc',
-          type: 'PDF',
-          uploadDate: '2023-12-15',
-          size: '2.5 MB'
-        },
-        {
-          name: 'Biên bản bàn giao',
-          type: 'PDF',
-          uploadDate: '2024-01-02',
-          size: '1.8 MB'
-        }
-      ]
-    },
-    {
-      _id: '2',
-      contractCode: 'HD-2023-078',
-      landParcel: {
-        parcelCode: 'CI-023',
-        location: 'Tờ 8, Thửa 67, Thôn Bắc Hà',
-        area: 1800
-      },
-      startDate: '2023-03-01',
-      endDate: '2024-02-29',
-      status: 'Đã kết thúc',
-      monthlyRent: 1800000,
-      totalPaid: 21600000,
-      remainingAmount: 0,
-      signedDate: '2023-02-20',
-      approvedBy: 'Trần Thị Bình - Thanh tra viên',
-      notes: 'Hợp đồng thuê đất nuôi trồng thủy sản, ao cá',
-      paymentHistory: [
-        {
-          _id: 'p4',
-          date: '2023-03-05',
-          amount: 1800000,
-          period: 'Tháng 3/2023',
-          status: 'Đã thanh toán',
-          method: 'Chuyển khoản'
-        },
-        {
-          _id: 'p5',
-          date: '2023-04-05',
-          amount: 1800000,
-          period: 'Tháng 4/2023',
-          status: 'Đã thanh toán',
-          method: 'Chuyển khoản'
-        }
-      ],
-      documents: [
-        {
-          name: 'Hợp đồng thuê đất',
-          type: 'PDF',
-          uploadDate: '2023-02-20',
-          size: '2.1 MB'
-        },
-        {
-          name: 'Biên bản thanh lý hợp đồng',
-          type: 'PDF',
-          uploadDate: '2024-03-01',
-          size: '1.5 MB'
-        }
-      ]
-    },
-    {
-      _id: '3',
-      contractCode: 'HD-2022-156',
-      landParcel: {
-        parcelCode: 'CI-112',
-        location: 'Tờ 25, Thửa 203, Thôn Đông Nam',
-        area: 3200
-      },
-      startDate: '2022-06-01',
-      endDate: '2023-05-31',
-      status: 'Đã chuyển nhượng',
-      monthlyRent: 3200000,
-      totalPaid: 38400000,
-      remainingAmount: 0,
-      signedDate: '2022-05-15',
-      approvedBy: 'Lê Văn Cường - Kỹ sư',
-      notes: 'Hợp đồng đã chuyển nhượng cho HTX Sản xuất Xanh Đông Nam',
-      paymentHistory: [
-        {
-          _id: 'p6',
-          date: '2022-06-05',
-          amount: 3200000,
-          period: 'Tháng 6/2022',
-          status: 'Đã thanh toán',
-          method: 'Chuyển khoản'
-        }
-      ],
-      documents: [
-        {
-          name: 'Hợp đồng thuê đất',
-          type: 'PDF',
-          uploadDate: '2022-05-15',
-          size: '2.3 MB'
-        },
-        {
-          name: 'Hợp đồng chuyển nhượng',
-          type: 'PDF',
-          uploadDate: '2023-04-01',
-          size: '1.9 MB'
-        }
-      ]
-    }
-  ];
-
-  // Fetch data
+  // Fetch data from API
   const fetchContracts = async () => {
     setLoading(true);
     try {
-      // For now, use mock data
-      // In real implementation, this would be an API call
-      setTimeout(() => {
-        setContracts(mockContracts);
-        setLoading(false);
-      }, 500);
+      const token = localStorage.getItem('token');
+      const response = await axios.get('http://localhost:5000/api/renter/contracts', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (response.data.success) {
+        setContracts(response.data.contracts || []);
+      }
     } catch (error) {
       message.error('Lỗi khi tải dữ liệu lịch sử hợp đồng');
       console.error('Error fetching contracts:', error);
+    } finally {
       setLoading(false);
     }
   };
@@ -225,19 +76,39 @@ const ContractHistory = () => {
   }, []);
 
   // Handle view details
-  const handleViewDetails = (contract) => {
+  const handleViewDetails = async (contract) => {
     setSelectedContract(contract);
+    
+    // Fetch transactions for this contract
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`http://localhost:5000/api/renter/contract/${contract._id}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (response.data.success) {
+        // Add transactions to the contract object
+        setSelectedContract({
+          ...contract,
+          transactions: response.data.transactions || []
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching contract details:', error);
+    }
+    
     setDetailModalVisible(true);
   };
 
   // Get status color
   const getStatusColor = (status) => {
     const colors = {
-      'Đang hiệu lực': 'success',
-      'Đã kết thúc': 'default',
-      'Đã chuyển nhượng': 'processing',
-      'Đã hủy': 'error',
-      'Tạm dừng': 'warning'
+      'ĐANG THUÊ': 'success',
+      'HẾT HẠN': 'default',
+      'CHỜ DUYỆT': 'processing',
+      'ĐÃ TỪ CHỐI': 'error'
     };
     return colors[status] || 'default';
   };
@@ -245,11 +116,10 @@ const ContractHistory = () => {
   // Get status icon
   const getStatusIcon = (status) => {
     const icons = {
-      'Đang hiệu lực': <CheckCircleOutlined />,
-      'Đã kết thúc': <ClockCircleOutlined />,
-      'Đã chuyển nhượng': <HistoryOutlined />,
-      'Đã hủy': <ExclamationCircleOutlined />,
-      'Tạm dừng': <ClockCircleOutlined />
+      'ĐANG THUÊ': <CheckCircleOutlined />,
+      'HẾT HẠN': <ClockCircleOutlined />,
+      'CHỜ DUYỆT': <HistoryOutlined />,
+      'ĐÃ TỪ CHỐI': <ExclamationCircleOutlined />
     };
     return icons[status] || <ClockCircleOutlined />;
   };
@@ -263,9 +133,9 @@ const ContractHistory = () => {
       render: (date) => moment(date).format('DD/MM/YYYY')
     },
     {
-      title: 'Kỳ thanh toán',
-      dataIndex: 'period',
-      key: 'period'
+      title: 'Mã giao dịch',
+      dataIndex: 'transactionCode',
+      key: 'transactionCode'
     },
     {
       title: 'Số tiền',
@@ -275,15 +145,15 @@ const ContractHistory = () => {
     },
     {
       title: 'Phương thức',
-      dataIndex: 'method',
-      key: 'method'
+      dataIndex: 'paymentMethod',
+      key: 'paymentMethod'
     },
     {
       title: 'Trạng thái',
       dataIndex: 'status',
       key: 'status',
       render: (status) => (
-        <Tag color={status === 'Đã thanh toán' ? 'success' : 'warning'}>
+        <Tag color={status === 'Thành công' ? 'success' : 'warning'}>
           {status}
         </Tag>
       )
@@ -317,7 +187,7 @@ const ContractHistory = () => {
           <Card>
             <div style={{ textAlign: 'center' }}>
               <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#52c41a' }}>
-                {contracts.filter(c => c.status === 'Đang hiệu lực').length}
+                {contracts.filter(c => c.status === 'ĐANG THUÊ').length}
               </div>
               <div style={{ color: '#666', fontSize: '14px' }}>Đang hiệu lực</div>
             </div>
@@ -327,7 +197,7 @@ const ContractHistory = () => {
           <Card>
             <div style={{ textAlign: 'center' }}>
               <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#1890ff' }}>
-                {contracts.reduce((sum, c) => sum + c.landParcel.area, 0).toLocaleString()}
+                {contracts.reduce((sum, c) => sum + (c.area || 0), 0).toLocaleString()}
               </div>
               <div style={{ color: '#666', fontSize: '14px' }}>Tổng diện tích (m²)</div>
             </div>
@@ -337,9 +207,9 @@ const ContractHistory = () => {
           <Card>
             <div style={{ textAlign: 'center' }}>
               <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#fa8c16' }}>
-                {contracts.reduce((sum, c) => sum + c.totalPaid, 0).toLocaleString()}
+                {contracts.reduce((sum, c) => sum + ((c.annualPrice || 0) * (c.area || 0) * (c.term || 0)), 0).toLocaleString()}
               </div>
-              <div style={{ color: '#666', fontSize: '14px' }}>Tổng đã thanh toán (VNĐ)</div>
+              <div style={{ color: '#666', fontSize: '14px' }}>Tổng giá trị (VNĐ)</div>
             </div>
           </Card>
         </Col>
@@ -374,115 +244,124 @@ const ContractHistory = () => {
 
       {/* Timeline */}
       <Card title="Lịch sử Hợp đồng" loading={loading}>
-        <Timeline
-          items={contracts.map((contract, index) => ({
-            dot: getStatusIcon(contract.status),
-            color: getStatusColor(contract.status),
-            children: (
-              <div key={contract._id}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
-                  <div>
-                    <Title level={4} style={{ margin: 0, color: '#1e7e34' }}>
-                      {contract.contractCode}
-                    </Title>
-                    <Text type="secondary">
-                      Ký ngày: {moment(contract.signedDate).format('DD/MM/YYYY')}
-                    </Text>
+        {contracts.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '40px' }}>
+            <HistoryOutlined style={{ fontSize: '48px', color: '#d9d9d9', marginBottom: '16px' }} />
+            <Title level={4} style={{ color: '#8c8c8c' }}>Chưa có lịch sử hợp đồng</Title>
+            <Text type="secondary">Bạn chưa có hợp đồng thuê đất nào.</Text>
+          </div>
+        ) : (
+          <Timeline
+            items={contracts.map((contract, index) => ({
+              dot: getStatusIcon(contract.status),
+              color: getStatusColor(contract.status),
+              children: (
+                <div key={contract._id}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+                    <div>
+                      <Title level={4} style={{ margin: 0, color: '#1e7e34' }}>
+                        {contract.contractCode}
+                      </Title>
+                      <Text type="secondary">
+                        Ký ngày: {moment(contract.createdAt || contract.startDate).format('DD/MM/YYYY')}
+                      </Text>
+                    </div>
+                    <Tag color={getStatusColor(contract.status)} style={{ fontSize: '13px' }}>
+                      {contract.status}
+                    </Tag>
                   </div>
-                  <Tag color={getStatusColor(contract.status)} style={{ fontSize: '13px' }}>
-                    {contract.status}
-                  </Tag>
-                </div>
 
-                <Row gutter={[16, 16]}>
-                  <Col span={12}>
-                    <Card size="small" style={{ backgroundColor: '#f9f9f9' }}>
-                      <Space direction="vertical" size="small" style={{ width: '100%' }}>
-                        <div>
-                          <Text strong>Thửa đất:</Text>
-                          <div style={{ marginTop: '4px' }}>
-                            <Tag color="blue">{contract.landParcel.parcelCode}</Tag>
-                            <Text>{contract.landParcel.location}</Text>
+                  <Row gutter={[16, 16]}>
+                    <Col span={12}>
+                      <Card size="small" style={{ backgroundColor: '#f9f9f9' }}>
+                        <Space direction="vertical" size="small" style={{ width: '100%' }}>
+                          <div>
+                            <Text strong>Thửa đất:</Text>
+                            <div style={{ marginTop: '4px' }}>
+                              {contract.parcelNumber && <Tag color="blue">{contract.parcelNumber}</Tag>}
+                              {contract.landLotNumber && <Tag color="blue">Thửa {contract.landLotNumber}</Tag>}
+                              <Text>{contract.parcelAddress}</Text>
+                            </div>
                           </div>
-                        </div>
-                        <div>
-                          <Text strong>Diện tích:</Text>
-                          <Text style={{ marginLeft: '8px' }}>
-                            {contract.landParcel.area.toLocaleString()} m²
-                          </Text>
-                        </div>
-                        <div>
-                          <Text strong>Thời hạn:</Text>
-                          <div style={{ marginTop: '4px' }}>
-                            <CalendarOutlined style={{ marginRight: '4px' }} />
-                            {moment(contract.startDate).format('DD/MM/YYYY')} - {moment(contract.endDate).format('DD/MM/YYYY')}
+                          <div>
+                            <Text strong>Diện tích:</Text>
+                            <Text style={{ marginLeft: '8px' }}>
+                              {contract.area?.toLocaleString()} m²
+                            </Text>
                           </div>
-                        </div>
-                      </Space>
-                    </Card>
-                  </Col>
-                  <Col span={12}>
-                    <Card size="small" style={{ backgroundColor: '#f0f9ff' }}>
-                      <Space direction="vertical" size="small" style={{ width: '100%' }}>
-                        <div>
-                          <Text strong>Tiền thuê hàng tháng:</Text>
-                          <div style={{ marginTop: '4px', fontSize: '16px', fontWeight: 'bold', color: '#1e7e34' }}>
-                            <DollarCircleOutlined style={{ marginRight: '4px' }} />
-                            {contract.monthlyRent.toLocaleString()} VNĐ
+                          <div>
+                            <Text strong>Thời hạn:</Text>
+                            <div style={{ marginTop: '4px' }}>
+                              <CalendarOutlined style={{ marginRight: '4px' }} />
+                              {moment(contract.startDate).format('DD/MM/YYYY')} - {moment(contract.endDate).format('DD/MM/YYYY')}
+                            </div>
                           </div>
-                        </div>
-                        <div>
-                          <Text strong>Đã thanh toán:</Text>
-                          <Text style={{ marginLeft: '8px', color: '#52c41a' }}>
-                            {contract.totalPaid.toLocaleString()} VNĐ
-                          </Text>
-                        </div>
-                        <div>
-                          <Text strong>Còn lại:</Text>
-                          <Text style={{ marginLeft: '8px', color: contract.remainingAmount > 0 ? '#fa8c16' : '#52c41a' }}>
-                            {contract.remainingAmount.toLocaleString()} VNĐ
-                          </Text>
-                        </div>
-                      </Space>
-                    </Card>
-                  </Col>
-                </Row>
+                        </Space>
+                      </Card>
+                    </Col>
+                    <Col span={12}>
+                      <Card size="small" style={{ backgroundColor: '#f0f9ff' }}>
+                        <Space direction="vertical" size="small" style={{ width: '100%' }}>
+                          <div>
+                            <Text strong>Giá thuê hàng năm:</Text>
+                            <div style={{ marginTop: '4px', fontSize: '16px', fontWeight: 'bold', color: '#1e7e34' }}>
+                              <DollarCircleOutlined style={{ marginRight: '4px' }} />
+                              {contract.annualPrice?.toLocaleString()} VNĐ/m²
+                            </div>
+                          </div>
+                          <div>
+                            <Text strong>Tổng giá trị hợp đồng:</Text>
+                            <Text style={{ marginLeft: '8px', color: '#1890ff' }}>
+                              {((contract.annualPrice || 0) * (contract.area || 0) * (contract.term || 0)).toLocaleString()} VNĐ
+                            </Text>
+                          </div>
+                          <div>
+                            <Text strong>Nợ hiện tại:</Text>
+                            <Text style={{ marginLeft: '8px', color: contract.currentDebt > 0 ? '#fa8c16' : '#52c41a' }}>
+                              {(contract.currentDebt || 0).toLocaleString()} VNĐ
+                            </Text>
+                          </div>
+                        </Space>
+                      </Card>
+                    </Col>
+                  </Row>
 
-                <div style={{ marginTop: '12px' }}>
-                  <Text strong>Ghi chú:</Text>
-                  <div style={{ marginTop: '4px', padding: '8px', backgroundColor: '#fafafa', borderRadius: '4px' }}>
-                    {contract.notes}
+                  <div style={{ marginTop: '12px' }}>
+                    <Text strong>Mục đích sử dụng:</Text>
+                    <div style={{ marginTop: '4px', padding: '8px', backgroundColor: '#fafafa', borderRadius: '4px' }}>
+                      {contract.purpose}
+                    </div>
                   </div>
-                </div>
 
-                <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div style={{ display: 'flex', alignItems: 'center' }}>
-                    <Avatar size="small" icon={<UserOutlined />} style={{ marginRight: '8px' }} />
-                    <Text type="secondary">Phê duyệt bởi: {contract.approvedBy}</Text>
+                  <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', alignItems: 'center' }}>
+                      <Avatar size="small" icon={<UserOutlined />} style={{ marginRight: '8px' }} />
+                      <Text type="secondary">Người thuê: {contract.renterName}</Text>
+                    </div>
+                    <Space>
+                      <Button 
+                        type="text" 
+                        icon={<EyeOutlined />} 
+                        onClick={() => handleViewDetails(contract)}
+                      >
+                        Xem chi tiết
+                      </Button>
+                      <Button 
+                        type="text" 
+                        icon={<DownloadOutlined />}
+                        onClick={() => message.info('Tính năng tải xuống đang được phát triển')}
+                      >
+                        Tải hợp đồng
+                      </Button>
+                    </Space>
                   </div>
-                  <Space>
-                    <Button 
-                      type="text" 
-                      icon={<EyeOutlined />} 
-                      onClick={() => handleViewDetails(contract)}
-                    >
-                      Xem chi tiết
-                    </Button>
-                    <Button 
-                      type="text" 
-                      icon={<DownloadOutlined />}
-                      onClick={() => message.info('Tính năng tải xuống đang được phát triển')}
-                    >
-                      Tải hợp đồng
-                    </Button>
-                  </Space>
-                </div>
 
-                {index < contracts.length - 1 && <Divider />}
-              </div>
-            )
-          }))}
-        />
+                  {index < contracts.length - 1 && <Divider />}
+                </div>
+              )
+            }))}
+          />
+        )}
       </Card>
 
       {/* Detail Modal */}
@@ -517,7 +396,7 @@ const ContractHistory = () => {
                   <div style={{ marginBottom: '8px' }}>
                     <Text strong>Ngày ký:</Text>
                     <div style={{ marginTop: '4px' }}>
-                      {moment(selectedContract.signedDate).format('DD/MM/YYYY')}
+                      {moment(selectedContract.createdAt || selectedContract.startDate).format('DD/MM/YYYY')}
                     </div>
                   </div>
                   <div style={{ marginBottom: '8px' }}>
@@ -537,15 +416,15 @@ const ContractHistory = () => {
                     </div>
                   </div>
                   <div style={{ marginBottom: '8px' }}>
-                    <Text strong>Người phê duyệt:</Text>
+                    <Text strong>Người thuê:</Text>
                     <div style={{ marginTop: '4px' }}>
-                      {selectedContract.approvedBy}
+                      {selectedContract.renterName}
                     </div>
                   </div>
                   <div style={{ marginBottom: '8px' }}>
-                    <Text strong>Tiền thuê hàng tháng:</Text>
+                    <Text strong>Giá thuê hàng năm:</Text>
                     <div style={{ marginTop: '4px', fontSize: '16px', fontWeight: 'bold', color: '#1e7e34' }}>
-                      {selectedContract.monthlyRent.toLocaleString()} VNĐ
+                      {selectedContract.annualPrice?.toLocaleString()} VNĐ/m²
                     </div>
                   </div>
                 </Col>
@@ -557,17 +436,25 @@ const ContractHistory = () => {
               <Row gutter={[16, 16]}>
                 <Col span={12}>
                   <div style={{ marginBottom: '8px' }}>
-                    <Text strong>Mã thửa đất:</Text>
+                    <Text strong>Tờ bản đồ:</Text>
                     <div style={{ marginTop: '4px' }}>
-                      <Tag color="blue" style={{ fontSize: '14px' }}>
-                        {selectedContract.landParcel.parcelCode}
-                      </Tag>
+                      {selectedContract.parcelNumber ? (
+                        <Tag color="blue" style={{ fontSize: '14px' }}>
+                          {selectedContract.parcelNumber}
+                        </Tag>
+                      ) : 'Chưa có thông tin'}
+                    </div>
+                  </div>
+                  <div style={{ marginBottom: '8px' }}>
+                    <Text strong>Số thửa:</Text>
+                    <div style={{ marginTop: '4px' }}>
+                      {selectedContract.landLotNumber || 'Chưa có thông tin'}
                     </div>
                   </div>
                   <div style={{ marginBottom: '8px' }}>
                     <Text strong>Vị trí:</Text>
                     <div style={{ marginTop: '4px' }}>
-                      {selectedContract.landParcel.location}
+                      {selectedContract.parcelAddress}
                     </div>
                   </div>
                 </Col>
@@ -575,7 +462,21 @@ const ContractHistory = () => {
                   <div style={{ marginBottom: '8px' }}>
                     <Text strong>Diện tích:</Text>
                     <div style={{ marginTop: '4px', fontSize: '16px', fontWeight: 'bold', color: '#1890ff' }}>
-                      {selectedContract.landParcel.area.toLocaleString()} m²
+                      {selectedContract.area?.toLocaleString()} m²
+                    </div>
+                  </div>
+                  <div style={{ marginBottom: '8px' }}>
+                    <Text strong>Mục đích sử dụng:</Text>
+                    <div style={{ marginTop: '4px' }}>
+                      {selectedContract.purpose}
+                    </div>
+                  </div>
+                  <div style={{ marginBottom: '8px' }}>
+                    <Text strong>Tình trạng bàn giao:</Text>
+                    <div style={{ marginTop: '4px' }}>
+                      <Tag color={selectedContract.isHandedOver ? 'success' : 'warning'}>
+                        {selectedContract.isHandedOver ? 'Đã bàn giao' : 'Chưa bàn giao'}
+                      </Tag>
                     </div>
                   </div>
                 </Col>
@@ -583,47 +484,46 @@ const ContractHistory = () => {
             </Card>
 
             {/* Payment History */}
-            <Card title="Lịch sử Thanh toán" size="small" style={{ marginBottom: '16px' }}>
-              <Table
-                columns={paymentColumns}
-                dataSource={selectedContract.paymentHistory}
-                rowKey="_id"
-                pagination={false}
-                size="small"
-              />
-            </Card>
+            {selectedContract.transactions && selectedContract.transactions.length > 0 && (
+              <Card title="Lịch sử Thanh toán" size="small" style={{ marginBottom: '16px' }}>
+                <Table
+                  columns={paymentColumns}
+                  dataSource={selectedContract.transactions}
+                  rowKey="_id"
+                  pagination={false}
+                  size="small"
+                />
+              </Card>
+            )}
 
-            {/* Documents */}
-            <Card title="Tài liệu đính kèm" size="small">
-              <div>
-                {selectedContract.documents.map((doc, index) => (
-                  <div key={index} style={{ 
-                    display: 'flex', 
-                    justifyContent: 'space-between', 
-                    alignItems: 'center',
-                    padding: '8px 0',
-                    borderBottom: index < selectedContract.documents.length - 1 ? '1px solid #f0f0f0' : 'none'
-                  }}>
-                    <div style={{ display: 'flex', alignItems: 'center' }}>
-                      <FileTextOutlined style={{ marginRight: '8px', color: '#1890ff' }} />
-                      <div>
-                        <div style={{ fontWeight: 'bold' }}>{doc.name}</div>
-                        <div style={{ fontSize: '12px', color: '#666' }}>
-                          {doc.type} • {doc.size} • {moment(doc.uploadDate).format('DD/MM/YYYY')}
-                        </div>
-                      </div>
+            {/* Financial Summary */}
+            <Card title="Tóm tắt Tài chính" size="small">
+              <Row gutter={[16, 16]}>
+                <Col span={8}>
+                  <div style={{ textAlign: 'center', padding: '16px', backgroundColor: '#f0f9ff', borderRadius: '8px' }}>
+                    <Text type="secondary" style={{ fontSize: '12px' }}>Tổng giá trị hợp đồng</Text>
+                    <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#1890ff', marginTop: '8px' }}>
+                      {((selectedContract.annualPrice || 0) * (selectedContract.area || 0) * (selectedContract.term || 0)).toLocaleString()} VNĐ
                     </div>
-                    <Button 
-                      type="text" 
-                      icon={<DownloadOutlined />} 
-                      size="small"
-                      onClick={() => message.info('Tính năng tải xuống đang được phát triển')}
-                    >
-                      Tải xuống
-                    </Button>
                   </div>
-                ))}
-              </div>
+                </Col>
+                <Col span={8}>
+                  <div style={{ textAlign: 'center', padding: '16px', backgroundColor: '#f6ffed', borderRadius: '8px' }}>
+                    <Text type="secondary" style={{ fontSize: '12px' }}>Giá thuê hàng năm</Text>
+                    <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#52c41a', marginTop: '8px' }}>
+                      {((selectedContract.annualPrice || 0) * (selectedContract.area || 0)).toLocaleString()} VNĐ
+                    </div>
+                  </div>
+                </Col>
+                <Col span={8}>
+                  <div style={{ textAlign: 'center', padding: '16px', backgroundColor: '#fff7e6', borderRadius: '8px' }}>
+                    <Text type="secondary" style={{ fontSize: '12px' }}>Nợ hiện tại</Text>
+                    <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#fa8c16', marginTop: '8px' }}>
+                      {(selectedContract.currentDebt || 0).toLocaleString()} VNĐ
+                    </div>
+                  </div>
+                </Col>
+              </Row>
             </Card>
           </div>
         )}

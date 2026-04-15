@@ -10,7 +10,8 @@ import {
   FileImageOutlined,
   PrinterOutlined,
   ExpandOutlined,
-  WalletOutlined
+  WalletOutlined,
+  HomeOutlined
 } from '@ant-design/icons';
 
 const { Title, Text } = Typography;
@@ -25,7 +26,12 @@ const ContractDetail = () => {
 
   const fetchData = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/renter/contract');
+      const token = localStorage.getItem('token');
+      const response = await axios.get('http://localhost:5000/api/renter/contract', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
       if (response.data.contract) {
         setContractData(response.data.contract);
       }
@@ -37,7 +43,10 @@ const ContractDetail = () => {
       }
     } catch (error) {
       console.error('Error fetching contract detail:', error);
-      // If no contract found, we'll use fallback data with current user name
+      if (error.response?.status === 404) {
+        // No contract found
+        setContractData(null);
+      }
     }
   };
 
@@ -46,9 +55,14 @@ const ContractDetail = () => {
   const handlePay = async () => {
     setPaying(true);
     try {
+      const token = localStorage.getItem('token');
       await axios.post('http://localhost:5000/api/renter/payment', {
         amount: payAmount,
         paymentMethod: 'Chuyển khoản'
+      }, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
       });
       message.success('Thanh toán kỳ tiếp theo thành công!');
       setPayModal(false);
@@ -59,21 +73,18 @@ const ContractDetail = () => {
     setPaying(false);
   };
 
-  // Fallback data (hiển thị khi API chưa trả về)
-  const c = contractData || {
-    contractCode: 'YT-2023-00892',
-    renterName: user?.name || 'Người thuê đất', // Use actual user name
-    parcelAddress: 'Thửa đất số 5691, Tờ bản đồ số C44, Thôn Lại Hoàng, Xã Yên Thường',
-    area: 2450,
-    purpose: 'Đất sản xuất nông nghiệp (Trồng lúa)',
-    term: 5,
-    startDate: '2023-01-01',
-    endDate: '2028-01-01',
-    annualPrice: 45000,
-    rentAmount: 45000,
-    isHandedOver: true
-  };
+  // If no contract data, show message
+  if (!contractData) {
+    return (
+      <div style={{ textAlign: 'center', padding: '80px 20px' }}>
+        <HomeOutlined style={{ fontSize: '64px', color: '#d9d9d9', marginBottom: '24px' }} />
+        <Title level={3} style={{ color: '#8c8c8c' }}>Chưa có hợp đồng thuê đất</Title>
+        <Text type="secondary">Bạn chưa có hợp đồng thuê đất nào. Vui lòng tạo đơn xin thuê đất để bắt đầu.</Text>
+      </div>
+    );
+  }
 
+  const c = contractData;
   const paymentPercent = Math.round(progress.paymentPercent || 0);
   const totalAnnualRent = (c.rentAmount || c.annualPrice) * c.area;
 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Row, Col, Card, Typography, Input, Button, Tag, Steps, List, Space, Modal, message } from 'antd';
+import { Row, Col, Card, Typography, Input, Button, Tag, Steps, List, Modal, message } from 'antd';
 import { 
   SearchOutlined, 
   EnvironmentOutlined, 
@@ -13,7 +13,6 @@ import {
   TransactionOutlined,
   MessageOutlined,
   QuestionCircleOutlined,
-  DownloadOutlined,
   CreditCardOutlined
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
@@ -22,7 +21,7 @@ import { useAuth } from '../../contexts/AuthContext';
 const { Title, Text, Paragraph } = Typography;
 
 const Dashboard = () => {
-  const [data, setData] = useState({ contract: null, recentTransactions: [] });
+  const [data, setData] = useState({ contracts: [], recentTransactions: [] });
   const [searchValue, setSearchValue] = useState('');
   const [paymentGuideVisible, setPaymentGuideVisible] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -32,7 +31,12 @@ const Dashboard = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await axios.get('http://localhost:5000/api/renter/dashboard');
+        const token = localStorage.getItem('token');
+        const response = await axios.get('http://localhost:5000/api/renter/dashboard', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
         setData(response.data);
       } catch (error) {
         console.error('Lỗi khi fetch renter dashboard:', error);
@@ -41,18 +45,8 @@ const Dashboard = () => {
     fetchData();
   }, []);
 
-  const contract = data.contract || {
-    contractCode: 'YT-2023-00892',
-    landAddress: 'Thửa đất số 5691, Tờ bản đồ số C44, Thôn Lại Hoàng, Xã Yên Thường',
-    area: 2450,
-    duration: '5 Năm',
-    startDate: '2023-01-01',
-    endDate: '2028-01-01',
-    purpose: 'Đất sản xuất nông nghiệp (Trồng lúa)',
-    currentDebt: 4500000
-  };
-
-  const transactions = data.recentTransactions?.length > 0 ? data.recentTransactions : [];
+  const contracts = data?.contracts || [];
+  const transactions = data?.recentTransactions || [];
 
   // Xử lý tìm kiếm hợp đồng
   const handleSearch = async () => {
@@ -91,10 +85,15 @@ const Dashboard = () => {
   };
 
   // Xử lý tải hợp đồng PDF
-  const handleDownloadContract = async () => {
+  const handleDownloadContract = async (contractCode) => {
+    if (!contractCode) {
+      message.warning('Không tìm thấy thông tin hợp đồng');
+      return;
+    }
+    
     setLoading(true);
     try {
-      const response = await axios.get(`http://localhost:5000/api/renter/contract/${contract.contractCode}/pdf`, {
+      const response = await axios.get(`http://localhost:5000/api/renter/contract/${contractCode}/pdf`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         },
@@ -105,7 +104,7 @@ const Dashboard = () => {
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', `hop-dong-${contract.contractCode}.pdf`);
+      link.setAttribute('download', `hop-dong-${contractCode}.pdf`);
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -127,6 +126,10 @@ const Dashboard = () => {
 
   // Hiển thị modal hướng dẫn thanh toán
   const showPaymentGuide = () => {
+    if (contracts.length === 0) {
+      message.warning('Bạn chưa có hợp đồng thuê đất');
+      return;
+    }
     setPaymentGuideVisible(true);
   };
 
@@ -179,43 +182,68 @@ const Dashboard = () => {
       <Row gutter={24}>
         {/* Left Column */}
         <Col span={16}>
-          {/* Active Contract Card */}
-          <Card variant="borderless" style={{ borderRadius: '12px', marginBottom: '24px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
+          {/* Active Contracts List */}
+          {contracts.length > 0 ? (
+            <>
+              {contracts.length > 1 && (
+                <div style={{ marginBottom: '16px' }}>
+                  <Title level={4} style={{ margin: 0, color: '#002e42' }}>
+                    Hợp đồng đang hiệu lực ({contracts.length})
+                  </Title>
+                  <Text type="secondary">Bạn đang có {contracts.length} hợp đồng thuê đất đang hoạt động</Text>
+                </div>
+              )}
+              {contracts.map((contract, index) => (
+                <Card 
+                  key={contract._id || index} 
+                  variant="borderless" 
+                  style={{ borderRadius: '12px', marginBottom: '24px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}
+                >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px' }}>
               <div>
-                <Tag color="success" style={{ marginBottom: '12px', borderRadius: '4px', padding: '2px 8px', fontWeight: 600 }}>ĐANG THUÊ</Tag>
-                <Title level={3} style={{ margin: 0 }}>Hợp đồng: {contract.contractCode}</Title>
-                <Text type="secondary"><EnvironmentOutlined /> {contract.landAddress}</Text>
+                <Tag color="success" style={{ marginBottom: '12px', borderRadius: '4px', padding: '2px 8px', fontWeight: 600 }}>
+                  {contract?.status || 'ĐANG THUÊ'}
+                </Tag>
+                <Title level={3} style={{ margin: 0 }}>Hợp đồng: {contract?.contractCode || 'N/A'}</Title>
+                <Text type="secondary"><EnvironmentOutlined /> {contract?.parcelAddress || contract?.landAddress || 'N/A'}</Text>
               </div>
               <div style={{ textAlign: 'right' }}>
                 <Text type="secondary" style={{ fontSize: '12px', fontWeight: 'bold' }}>DIỆN TÍCH</Text>
-                <div style={{ fontSize: '28px', fontWeight: 'bold', lineHeight: 1 }}>{Math.floor(contract.area).toLocaleString('vi-VN')} <span style={{ fontSize: '16px', fontWeight: 'normal' }}>m²</span></div>
+                <div style={{ fontSize: '28px', fontWeight: 'bold', lineHeight: 1 }}>
+                  {Math.floor(contract?.area || 0).toLocaleString('vi-VN')} <span style={{ fontSize: '16px', fontWeight: 'normal' }}>m²</span>
+                </div>
               </div>
             </div>
 
             <Row gutter={16} style={{ marginBottom: '24px' }}>
               <Col span={6}>
                 <Text type="secondary" style={{ fontSize: '12px' }}>Thời hạn thuê</Text>
-                <div style={{ fontWeight: 'bold', fontSize: '16px' }}>{contract.duration}</div>
+                <div style={{ fontWeight: 'bold', fontSize: '16px' }}>{contract?.term || contract?.duration || 0} năm</div>
               </Col>
               <Col span={6}>
                 <Text type="secondary" style={{ fontSize: '12px' }}>Ngày bắt đầu</Text>
-                <div style={{ fontWeight: 'bold', fontSize: '16px' }}>{new Date(contract.startDate).toLocaleDateString('vi-VN')}</div>
+                <div style={{ fontWeight: 'bold', fontSize: '16px' }}>
+                  {contract?.startDate ? new Date(contract.startDate).toLocaleDateString('vi-VN') : 'N/A'}
+                </div>
               </Col>
               <Col span={6}>
                 <Text type="secondary" style={{ fontSize: '12px' }}>Ngày kết thúc</Text>
-                <div style={{ fontWeight: 'bold', fontSize: '16px' }}>{new Date(contract.endDate).toLocaleDateString('vi-VN')}</div>
+                <div style={{ fontWeight: 'bold', fontSize: '16px' }}>
+                  {contract?.endDate ? new Date(contract.endDate).toLocaleDateString('vi-VN') : 'N/A'}
+                </div>
               </Col>
               <Col span={6}>
                 <Text type="secondary" style={{ fontSize: '12px' }}>Mục đích sử dụng</Text>
-                <div style={{ fontWeight: 'bold', fontSize: '16px' }}>{contract.purpose}</div>
+                <div style={{ fontWeight: 'bold', fontSize: '14px' }}>{contract?.purpose || 'N/A'}</div>
               </Col>
             </Row>
 
             <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
               <div style={{ flex: 1, backgroundColor: '#f5f5f5', padding: '16px', borderRadius: '8px' }}>
                 <Text type="secondary" style={{ fontSize: '12px' }}>Dư nợ hiện tại</Text>
-                <div style={{ color: '#d9363e', fontSize: '24px', fontWeight: 'bold' }}>{contract.currentDebt.toLocaleString('vi-VN')} <span style={{ fontSize: '14px', fontWeight: 'normal' }}>VNĐ</span></div>
+                <div style={{ color: '#d9363e', fontSize: '24px', fontWeight: 'bold' }}>
+                  {(contract.currentDebt || 0).toLocaleString('vi-VN')} <span style={{ fontSize: '14px', fontWeight: 'normal' }}>VNĐ</span>
+                </div>
               </div>
               <Button 
                 type="primary" 
@@ -231,12 +259,26 @@ const Dashboard = () => {
                 icon={<FilePdfOutlined />} 
                 style={{ height: '56px', padding: '0 24px', borderRadius: '8px' }}
                 loading={loading}
-                onClick={handleDownloadContract}
+                onClick={() => handleDownloadContract(contract.contractCode)}
               >
                 Tải hợp đồng (PDF)
               </Button>
             </div>
           </Card>
+              ))}
+            </>
+          ) : (
+            <Card variant="borderless" style={{ borderRadius: '12px', marginBottom: '24px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)', textAlign: 'center', padding: '40px' }}>
+              <HomeOutlined style={{ fontSize: '48px', color: '#d9d9d9', marginBottom: '16px' }} />
+              <Title level={4} style={{ color: '#8c8c8c' }}>Chưa có hợp đồng thuê đất</Title>
+              <Text type="secondary">Bạn chưa có hợp đồng thuê đất nào. Vui lòng tạo đơn xin thuê đất để bắt đầu.</Text>
+              <div style={{ marginTop: '24px' }}>
+                <Button type="primary" size="large" onClick={() => navigate('/renter/create-land-request')}>
+                  Tạo đơn xin thuê đất
+                </Button>
+              </div>
+            </Card>
+          )}
 
           {/* Payment History */}
           <Card 
@@ -270,7 +312,6 @@ const Dashboard = () => {
           <Card variant="borderless" style={{ borderRadius: '12px', marginBottom: '24px', backgroundColor: '#f4f6f8' }} styles={{ body: { padding: '24px' } }}>
             <Title level={5} style={{ display: 'flex', alignItems: 'center' }}><QuestionCircleOutlined style={{ marginRight: 8 }}/> Hướng dẫn nộp tiền</Title>
             <Steps
-              direction="vertical"
               size="small"
               current={-1}
               style={{ marginTop: '24px' }}
@@ -354,7 +395,7 @@ const Dashboard = () => {
             <Text>Tên tài khoản: KHO BẠC NHÀ NƯỚC GIA LÂM</Text><br/>
             <Text>Số tài khoản: 1234567890</Text><br/>
             <Text>Ngân hàng: Vietcombank - Chi nhánh Gia Lâm</Text><br/>
-            <Text>Nội dung: {contract.contractCode} - {user?.name}</Text>
+            <Text>Nội dung: {contracts[0]?.contractCode || 'N/A'} - {user?.name || 'N/A'}</Text>
           </div>
 
           <Title level={5} style={{ color: '#1e7e34' }}>3. Nộp trực tiếp</Title>
