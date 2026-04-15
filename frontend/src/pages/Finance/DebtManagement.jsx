@@ -19,9 +19,11 @@ const DebtManagement = () => {
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalRecords, setTotalRecords] = useState(0);
+  const [filteredRecords, setFilteredRecords] = useState(0);
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [selectedZone, setSelectedZone] = useState('all');
   const [selectedTime, setSelectedTime] = useState('q3');
+  const [searchText, setSearchText] = useState('');
 
   const [stats, setStats] = useState({
     totalEstimate: 0,
@@ -38,31 +40,86 @@ const DebtManagement = () => {
       try {
         setLoading(true);
         const token = localStorage.getItem('token');
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+        
+        console.log('🔍 Debt Management - Debug Info:');
+        console.log('- Token exists:', !!token);
+        console.log('- User role:', user.role);
+        
+        if (!token) {
+          console.error('❌ No token found');
+          return;
+        }
+
+        if (user.role !== 'finance' && user.role !== 'admin') {
+          console.error('❌ User role not authorized:', user.role);
+          return;
+        }
+
+        console.log('🚀 Fetching debt data with filters:', {
+          status: selectedStatus,
+          zone: selectedZone, 
+          time: selectedTime,
+          search: searchText,
+          page: currentPage
+        });
+        
         const response = await axios.get('http://localhost:5000/api/finance/debt', {
           params: {
             status: selectedStatus,
             zone: selectedZone,
             time: selectedTime,
+            search: searchText,
             page: currentPage,
             limit: 10
           },
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { 
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
         });
 
+        console.log('✅ Debt API response:', response.data);
+
         if (response.data.success) {
+          console.log('📊 Setting debt data:');
+          console.log('- Stats:', response.data.data.stats);
+          console.log('- Debt items:', response.data.data.debtData.length);
+          
+          // Debug: Log first few items to see area data
+          if (response.data.data.debtData.length > 0) {
+            console.log('📝 First 3 debt items:');
+            response.data.data.debtData.slice(0, 3).forEach((item, index) => {
+              console.log(`${index + 1}. ${item.name}`);
+              console.log(`   Area: "${item.area}"`);
+              console.log(`   Tax Code: ${item.taxCode}`);
+            });
+          }
+          
           setStats(response.data.data.stats);
           setDebtData(response.data.data.debtData);
           setTotalRecords(response.data.data.total);
+          setFilteredRecords(response.data.data.filtered || response.data.data.debtData.length);
+        } else {
+          console.error('❌ API returned success: false');
         }
       } catch (error) {
-        console.error('Error fetching debt data:', error);
+        console.error('❌ Error fetching debt data:', error);
+        console.error('- Error response:', error.response?.data);
+        
+        if (error.response?.status === 401) {
+          console.log('🔄 Token expired, redirecting to login...');
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          window.location.href = '/login';
+        }
       } finally {
         setLoading(false);
       }
     };
 
     fetchDebtData();
-  }, [selectedStatus, selectedZone, selectedTime, currentPage]);
+  }, [selectedStatus, selectedZone, selectedTime, currentPage, searchText]);
 
   const columns = [
     {
@@ -161,7 +218,7 @@ const DebtManagement = () => {
               <div style={{ fontSize: '12px', opacity: 0.8 }}>TỔNG THU DỰ KIẾN</div>
             </div>
             <div style={{ fontSize: '32px', fontWeight: 'bold' }}>
-              {stats.totalEstimate} 
+              {stats.totalEstimate ? parseFloat(stats.totalEstimate).toLocaleString('vi-VN') : '0'} 
               <span style={{ fontSize: '14px', marginLeft: '4px' }}>tỷ VNĐ</span>
             </div>
             <div style={{ 
@@ -183,18 +240,18 @@ const DebtManagement = () => {
               ĐÃ THU THỰC TẾ
             </div>
             <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#1e7e34' }}>
-              {stats.collected} 
+              {stats.collected ? parseFloat(stats.collected).toLocaleString('vi-VN') : '0'} 
               <span style={{ fontSize: '14px', marginLeft: '4px' }}>tỷ VNĐ</span>
             </div>
             <div style={{ marginTop: '8px' }}>
               <Progress 
-                percent={stats.collectionRate} 
+                percent={stats.collectionRate || 0} 
                 strokeColor="#1e7e34"
                 showInfo={false}
                 size="small"
               />
               <Text style={{ fontSize: '11px', color: '#8c8c8c' }}>
-                * Đã đạt {stats.collectionRate}% kế hoạch Nhà nước
+                * Đã đạt {stats.collectionRate || 0}% kế hoạch Nhà nước
               </Text>
             </div>
           </Card>
@@ -207,7 +264,7 @@ const DebtManagement = () => {
               <div style={{ fontSize: '12px', color: '#d9363e' }}>CÔNG NỢ QUÁ HẠN</div>
             </div>
             <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#d9363e' }}>
-              {stats.overdue} 
+              {stats.overdue ? parseFloat(stats.overdue).toLocaleString('vi-VN') : '0'} 
               <span style={{ fontSize: '14px', marginLeft: '4px' }}>tỷ VNĐ</span>
             </div>
             <div style={{ fontSize: '11px', color: '#d9363e', marginTop: '8px' }}>
@@ -265,9 +322,10 @@ const DebtManagement = () => {
               <Text type="secondary" style={{ fontSize: '12px', marginRight: '8px' }}>MỘI KHU VỰC</Text>
               <Select value={selectedZone} onChange={setSelectedZone} style={{ width: 150 }}>
                 <Option value="all">Tất cả</Option>
-                <Option value="zone-a">Khu A</Option>
-                <Option value="zone-b">Khu B</Option>
-                <Option value="zone-c">Khu C</Option>
+                <Option value="yen-khe">Thôn Yên Khê</Option>
+                <Option value="lai-hoang">Thôn Lại Hoàng</Option>
+                <Option value="dinh">Thôn Đình</Option>
+                <Option value="doc-la">Thôn Dốc Lã</Option>
               </Select>
             </div>
 
@@ -283,11 +341,25 @@ const DebtManagement = () => {
           </Space>
 
           <Space>
-            <Button icon={<FilterOutlined />}>Bộ lọc</Button>
+            <Button 
+              icon={<FilterOutlined />}
+              onClick={() => {
+                setSelectedStatus('all');
+                setSelectedZone('all');
+                setSelectedTime('q3');
+                setSearchText('');
+                setCurrentPage(1);
+              }}
+            >
+              Xóa bộ lọc
+            </Button>
             <Input 
               placeholder="Tìm kiếm MST hoặc mã thửa..."
               prefix={<SearchOutlined />}
               style={{ width: 250 }}
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+              allowClear
             />
           </Space>
         </div>
@@ -297,7 +369,12 @@ const DebtManagement = () => {
       <Card title="DANH SÁCH HỢP THUÊ & CÔNG NỢ CHI TIẾT">
         <div style={{ marginBottom: '16px' }}>
           <Text type="secondary" style={{ fontSize: '12px' }}>
-            Hiển thị {Math.min((currentPage - 1) * 10 + 1, totalRecords)} - {Math.min(currentPage * 10, totalRecords)} / {totalRecords} kết quả
+            Hiển thị {Math.min((currentPage - 1) * 10 + 1, filteredRecords)} - {Math.min(currentPage * 10, filteredRecords)} / {filteredRecords} kết quả
+            {filteredRecords !== totalRecords && (
+              <span style={{ color: '#1890ff', marginLeft: '8px' }}>
+                (đã lọc từ {totalRecords} tổng cộng)
+              </span>
+            )}
           </Text>
         </div>
 
@@ -308,9 +385,10 @@ const DebtManagement = () => {
           pagination={{
             current: currentPage,
             pageSize: 10,
-            total: totalRecords,
+            total: filteredRecords,
             showSizeChanger: false,
-            onChange: (page) => setCurrentPage(page)
+            onChange: (page) => setCurrentPage(page),
+            showTotal: (total, range) => `${range[0]}-${range[1]} của ${total} kết quả`
           }}
         />
       </Card>

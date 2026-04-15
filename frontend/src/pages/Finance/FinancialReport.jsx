@@ -219,7 +219,7 @@ const FinancialReport = () => {
             </div>
             <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#002e42' }}>
               {stats.totalUnits.toLocaleString()} 
-              <span style={{ fontSize: '14px', marginLeft: '4px' }}>Tr. VNĐ</span>
+              <span style={{ fontSize: '14px', marginLeft: '4px' }}>triệu VNĐ</span>
             </div>
           </Card>
         </Col>
@@ -231,7 +231,7 @@ const FinancialReport = () => {
             </div>
             <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#1e7e34' }}>
               {stats.totalCollected.toLocaleString()} 
-              <span style={{ fontSize: '14px', marginLeft: '4px' }}>Tr. VNĐ</span>
+              <span style={{ fontSize: '14px', marginLeft: '4px' }}>triệu VNĐ</span>
             </div>
             <div style={{ marginTop: '8px', fontSize: '11px' }}>
               <span style={{ color: '#1e7e34', fontWeight: 'bold' }}>{stats.completionRate}%</span>
@@ -247,7 +247,7 @@ const FinancialReport = () => {
             </div>
             <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#d9363e' }}>
               {stats.totalDebt.toLocaleString()} 
-              <span style={{ fontSize: '14px', marginLeft: '4px' }}>Tr. VNĐ</span>
+              <span style={{ fontSize: '14px', marginLeft: '4px' }}>triệu VNĐ</span>
             </div>
             <div style={{ marginTop: '8px', fontSize: '11px' }}>
               <span style={{ color: '#d9363e', fontWeight: 'bold' }}>{stats.debtRate}%</span>

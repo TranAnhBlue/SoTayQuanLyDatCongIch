@@ -209,7 +209,9 @@ exports.getDocuments = async (req, res) => {
 // @access  Private (finance, admin)
 exports.getDebtManagement = async (req, res) => {
     try {
-        const { status, zone, time, page = 1, limit = 10 } = req.query;
+        const { status, zone, time, page = 1, limit = 10, search } = req.query;
+
+        console.log('🔍 Debt Management API called with params:', { status, zone, time, page, limit, search });
 
         // Calculate stats
         const currentDate = new Date();
@@ -244,59 +246,131 @@ exports.getDebtManagement = async (req, res) => {
             }
         ]);
 
-        const overdue = await Transaction.aggregate([
-            {
-                $match: {
-                    status: 'Chờ xử lý',
-                    dueDate: { $lt: currentDate }
-                }
-            },
-            {
-                $group: {
-                    _id: null,
-                    total: { $sum: '$amount' }
-                }
-            }
-        ]);
+        // For overdue, we need to check contracts with debt, not transactions with dueDate
+        const contractsWithDebt = await Contract.find({
+            currentDebt: { $gt: 0 }
+        });
+
+        const overdueValue = contractsWithDebt.reduce((sum, contract) => sum + contract.currentDebt, 0) / 1000000000;
 
         const totalEstimateValue = totalEstimate.length > 0 ? totalEstimate[0].total / 1000000000 : 0;
         const collectedValue = collected.length > 0 ? collected[0].total / 1000000000 : 0;
-        const overdueValue = overdue.length > 0 ? overdue[0].total / 1000000000 : 0;
         const collectionRate = totalEstimateValue > 0 ? (collectedValue / totalEstimateValue * 100).toFixed(0) : 0;
 
-        // Get debt list
-        const contracts = await Contract.find()
-            .populate('renter', 'name')
-            .populate('landParcel', 'parcelCode location')
+        console.log('📊 Stats calculated:', {
+            totalEstimateValue: totalEstimateValue.toFixed(1),
+            collectedValue: collectedValue.toFixed(1),
+            overdueValue: overdueValue.toFixed(1),
+            collectionRate
+        });
+
+        // Build filter query for contracts
+        let contractQuery = {};
+        
+        // Filter by search (name, contract code, or parcel address)
+        if (search && search.trim()) {
+            const searchRegex = new RegExp(search.trim(), 'i');
+            contractQuery.$or = [
+                { renterName: searchRegex },
+                { contractCode: searchRegex },
+                { parcelAddress: searchRegex }
+            ];
+        }
+
+        // Filter by zone (based on parcel address)
+        if (zone && zone !== 'all') {
+            const zoneMap = {
+                'yen-khe': 'Yên Khê',
+                'lai-hoang': 'Lại Hoàng', 
+                'dinh': 'Đình',
+                'doc-la': 'Dốc Lã'
+            };
+            if (zoneMap[zone]) {
+                contractQuery.parcelAddress = new RegExp(zoneMap[zone], 'i');
+            }
+        }
+
+        console.log('🔍 Contract query:', contractQuery);
+
+        // Get contracts with filters
+        const contracts = await Contract.find(contractQuery)
             .limit(limit * 1)
             .skip((page - 1) * limit);
 
-        const count = await Contract.countDocuments();
+        const count = await Contract.countDocuments(contractQuery);
+
+        console.log('📋 Found contracts:', contracts.length, 'Total count:', count);
 
         const debtData = await Promise.all(contracts.map(async (contract) => {
-            const transactions = await Transaction.find({ contract: contract._id });
+            // Find transactions for this contract using contractId field
+            const transactions = await Transaction.find({ contractId: contract._id });
             const totalAmount = transactions.reduce((sum, t) => sum + t.amount, 0);
-            const paid = transactions.filter(t => t.status === 'completed').reduce((sum, t) => sum + t.amount, 0);
-            const remaining = totalAmount - paid;
+            const paid = transactions.filter(t => t.status === 'Thành công').reduce((sum, t) => sum + t.amount, 0);
+            const remaining = contract.currentDebt || 0; // Use currentDebt from contract
 
-            let status = 'paid';
+            let debtStatus = 'paid';
             if (remaining > 0) {
-                const hasPendingOverdue = transactions.some(t => t.status === 'pending' && t.dueDate < currentDate);
-                status = hasPendingOverdue ? 'critical' : 'overdue';
+                // Check if there are overdue transactions
+                const hasOverdueTransactions = transactions.some(t => 
+                    t.status === 'Chờ xử lý' && t.dueDate && t.dueDate < currentDate
+                );
+                debtStatus = hasOverdueTransactions ? 'critical' : 'overdue';
+            }
+
+            // Get renter name - handle both ObjectId and String renterId
+            let renterName = 'N/A';
+            try {
+                if (contract.renterId) {
+                    const User = require('../models/User');
+                    const user = await User.findById(contract.renterId);
+                    if (user) {
+                        renterName = user.name;
+                    } else {
+                        // Fallback to renterName in contract
+                        renterName = contract.renterName || 'N/A';
+                    }
+                } else {
+                    renterName = contract.renterName || 'N/A';
+                }
+            } catch (err) {
+                // If renterId is not ObjectId, use renterName
+                renterName = contract.renterName || 'N/A';
             }
 
             return {
                 key: contract._id,
-                name: contract.renter?.name || 'N/A',
+                name: renterName,
                 taxCode: contract.contractCode || 'N/A',
-                area: contract.landParcel?.location || 'N/A',
+                area: contract.parcelAddress || `Thửa ${contract.landLotNumber || 'N/A'}, Tờ ${contract.parcelNumber || 'N/A'}`,
                 totalAmount,
                 paid,
                 remaining,
-                status,
-                statusText: status === 'paid' ? 'ĐÃ NỘP ĐỦ' : status === 'overdue' ? 'NỢ TRONG HẠN' : 'NỢ QUÁ HẠN'
+                status: debtStatus,
+                statusText: debtStatus === 'paid' ? 'ĐÃ NỘP ĐỦ' : debtStatus === 'overdue' ? 'NỢ TRONG HẠN' : 'NỢ QUÁ HẠN'
             };
         }));
+
+        // Apply status filter after processing (since status is calculated)
+        let filteredDebtData = debtData;
+        if (status && status !== 'all') {
+            filteredDebtData = debtData.filter(item => {
+                switch (status) {
+                    case 'paid':
+                        return item.status === 'paid';
+                    case 'overdue':
+                        return item.status === 'overdue';
+                    case 'critical':
+                        return item.status === 'critical';
+                    default:
+                        return true;
+                }
+            });
+        }
+
+        console.log('✅ Debt data processed:', filteredDebtData.length, 'items after filtering');
+        if (filteredDebtData.length > 0) {
+            console.log('First debt item:', JSON.stringify(filteredDebtData[0], null, 2));
+        }
 
         res.status(200).json({
             success: true,
@@ -307,10 +381,11 @@ exports.getDebtManagement = async (req, res) => {
                     overdue: overdueValue.toFixed(1),
                     collectionRate: parseInt(collectionRate)
                 },
-                debtData,
+                debtData: filteredDebtData,
                 totalPages: Math.ceil(count / limit),
                 currentPage: page,
-                total: count
+                total: count,
+                filtered: filteredDebtData.length
             }
         });
     } catch (error) {

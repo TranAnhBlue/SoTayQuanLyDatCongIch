@@ -37,6 +37,12 @@ const DocumentManagement = () => {
       try {
         setLoading(true);
         const token = localStorage.getItem('token');
+        
+        if (!token) {
+          console.error('No token found');
+          return;
+        }
+
         const response = await axios.get('http://localhost:5000/api/finance/documents', {
           params: {
             type: selectedType,
@@ -46,6 +52,8 @@ const DocumentManagement = () => {
           },
           headers: { Authorization: `Bearer ${token}` }
         });
+
+        console.log('Documents API response:', response.data);
 
         if (response.data.success) {
           setDocuments(response.data.data.documents);
@@ -61,6 +69,10 @@ const DocumentManagement = () => {
         }
       } catch (error) {
         console.error('Error fetching documents:', error);
+        if (error.response?.status === 401) {
+          localStorage.removeItem('token');
+          window.location.href = '/login';
+        }
       } finally {
         setLoading(false);
       }
@@ -204,10 +216,10 @@ const DocumentManagement = () => {
             </div>
             <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#1e7e34' }}>
               {stats.totalValue.toLocaleString()} 
-              <span style={{ fontSize: '14px', marginLeft: '4px' }}>Trđ</span>
+              <span style={{ fontSize: '14px', marginLeft: '4px' }}>tỷ VNĐ</span>
             </div>
             <div style={{ fontSize: '11px', color: '#8c8c8c', marginTop: '8px' }}>
-              Hạn mức thu nộp: 3.000 Trđ
+              Hạn mức thu nộp: 3.000 tỷ VNĐ
               <span style={{ marginLeft: '8px', color: '#1e7e34', fontWeight: 'bold' }}>
                 {stats.collectionRate}%
               </span>
