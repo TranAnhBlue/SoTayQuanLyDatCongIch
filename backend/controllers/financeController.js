@@ -133,12 +133,9 @@ exports.getDocuments = async (req, res) => {
     try {
         const { type, time, page = 1, limit = 10 } = req.query;
 
-        let query = {};
+        console.log('🔍 Documents API called with params:', { type, time, page, limit });
 
-        // Filter by type
-        if (type && type !== 'all') {
-            query.type = type;
-        }
+        let query = {};
 
         // Filter by time
         if (time && time !== 'all') {
@@ -161,30 +158,49 @@ exports.getDocuments = async (req, res) => {
             }
 
             if (startDate) {
-                query.createdAt = { $gte: startDate };
+                query.date = { $gte: startDate };
             }
         }
 
+        console.log('📋 Query:', query);
+
         const documents = await Transaction.find(query)
-            .populate('userId', 'name')
-            .populate('contractId', 'contractCode')
+            .populate('contractId', 'contractCode renterName')
             .sort({ date: -1 })
             .limit(limit * 1)
             .skip((page - 1) * limit);
 
         const count = await Transaction.countDocuments(query);
 
-        const documentsFormatted = documents.map(doc => ({
-            key: doc._id,
-            code: doc.transactionCode || `PT-${new Date(doc.date).getFullYear()}-${String(doc._id).slice(-5)}`,
-            date: new Date(doc.date).toLocaleDateString('vi-VN'),
-            payer: doc.userId?.name || 'N/A',
-            payerAvatar: doc.userId?.name ? doc.userId.name.split(' ').map(n => n[0]).join('').slice(0, 2) : 'NA',
-            purpose: doc.description || 'Thu tiền thuê đất',
-            amount: doc.amount,
-            status: doc.status === 'Thành công' ? 'verified' : doc.status === 'Chờ xử lý' ? 'pending' : 'canceled',
-            statusText: doc.status === 'Thành công' ? 'VERIFIED' : doc.status === 'Chờ xử lý' ? 'PENDING' : 'CANCELED'
-        }));
+        console.log(`📄 Found ${documents.length} transactions, total: ${count}`);
+
+        const documentsFormatted = documents.map(doc => {
+            // Get payer name from contract
+            let payerName = 'N/A';
+            let payerAvatar = 'NA';
+            
+            if (doc.contractId && doc.contractId.renterName) {
+                payerName = doc.contractId.renterName;
+                payerAvatar = payerName.split(' ').map(n => n[0]).join('').slice(0, 2);
+            }
+
+            return {
+                key: doc._id,
+                code: doc.transactionCode || `PT-${new Date(doc.date).getFullYear()}-${String(doc._id).slice(-5)}`,
+                date: new Date(doc.date).toLocaleDateString('vi-VN'),
+                payer: payerName,
+                payerAvatar: payerAvatar,
+                purpose: doc.description || 'Thu tiền thuê đất',
+                amount: doc.amount,
+                status: doc.status === 'Thành công' ? 'verified' : doc.status === 'Chờ xử lý' ? 'pending' : 'canceled',
+                statusText: doc.status === 'Thành công' ? 'VERIFIED' : doc.status === 'Chờ xử lý' ? 'PENDING' : 'CANCELED'
+            };
+        });
+
+        console.log('✅ Documents formatted successfully');
+        if (documentsFormatted.length > 0) {
+            console.log('First document:', JSON.stringify(documentsFormatted[0], null, 2));
+        }
 
         res.status(200).json({
             success: true,
@@ -404,6 +420,8 @@ exports.getFinancialReports = async (req, res) => {
     try {
         const { period = 'q4-2023', page = 1, limit = 10 } = req.query;
 
+        console.log('🔍 Financial Reports API called with params:', { period, page, limit });
+
         // Parse period (e.g., 'q4-2023')
         const [quarter, year] = period.split('-');
         const quarterNum = parseInt(quarter.replace('q', ''));
@@ -413,8 +431,10 @@ exports.getFinancialReports = async (req, res) => {
         const startDate = new Date(yearNum, startMonth, 1);
         const endDate = new Date(yearNum, startMonth + 3, 0);
 
-        // Calculate stats
-        const totalArea = await LandParcel.aggregate([
+        console.log('📅 Period:', { startDate, endDate });
+
+        // Calculate stats from contracts (since LandParcel might not exist)
+        const totalAreaFromContracts = await Contract.aggregate([
             {
                 $group: {
                     _id: null,
@@ -467,20 +487,30 @@ exports.getFinancialReports = async (req, res) => {
             }
         ]);
 
+        const totalAreaValue = totalAreaFromContracts.length > 0 ? totalAreaFromContracts[0].total / 10000 : 0; // Convert to hectares
         const totalUnitsValue = totalUnits.length > 0 ? totalUnits[0].total / 1000000 : 0;
         const totalCollectedValue = totalCollected.length > 0 ? totalCollected[0].total / 1000000 : 0;
         const totalDebtValue = totalDebt.length > 0 ? totalDebt[0].total / 1000000 : 0;
         const completionRate = totalUnitsValue > 0 ? (totalCollectedValue / totalUnitsValue * 100).toFixed(0) : 0;
         const debtRate = totalUnitsValue > 0 ? (totalDebtValue / totalUnitsValue * 100).toFixed(0) : 0;
 
-        // Get report data
+        console.log('📊 Stats calculated:', {
+            totalArea: totalAreaValue.toFixed(2),
+            totalUnits: totalUnitsValue.toFixed(0),
+            totalCollected: totalCollectedValue.toFixed(0),
+            totalDebt: totalDebtValue.toFixed(0),
+            completionRate,
+            debtRate
+        });
+
+        // Get report data from contracts
         const contracts = await Contract.find()
-            .populate('renter', 'name')
-            .populate('landParcel', 'area')
             .limit(limit * 1)
             .skip((page - 1) * limit);
 
         const count = await Contract.countDocuments();
+
+        console.log('📋 Found contracts for report:', contracts.length, 'Total count:', count);
 
         const reportData = await Promise.all(contracts.map(async (contract) => {
             const transactions = await Transaction.find({ 
@@ -492,23 +522,42 @@ exports.getFinancialReports = async (req, res) => {
             const paid = transactions.filter(t => t.status === 'Thành công').reduce((sum, t) => sum + t.amount, 0);
             const remaining = totalAmount - paid;
 
+            // Get renter name
+            let renterName = contract.renterName || 'N/A';
+            try {
+                if (contract.renterId) {
+                    const User = require('../models/User');
+                    const user = await User.findById(contract.renterId);
+                    if (user) {
+                        renterName = user.name;
+                    }
+                }
+            } catch (err) {
+                // Use contract renterName as fallback
+            }
+
             return {
                 key: contract._id,
                 code: contract.contractCode || `DV-${yearNum}-${String(contract._id).slice(-3)}`,
-                unit: contract.renter?.name || 'N/A',
-                unitCode: contract.renter?.name ? contract.renter.name.split(' ').map(n => n[0]).join('').slice(0, 2) : 'NA',
-                area: contract.landParcel?.area || 0,
+                unit: renterName,
+                unitCode: renterName.split(' ').map(n => n[0]).join('').slice(0, 2),
+                area: contract.area || 0,
                 totalAmount,
                 paid,
                 remaining
             };
         }));
 
+        console.log('✅ Report data processed:', reportData.length, 'items');
+        if (reportData.length > 0) {
+            console.log('First report item:', JSON.stringify(reportData[0], null, 2));
+        }
+
         res.status(200).json({
             success: true,
             data: {
                 stats: {
-                    totalArea: totalArea.length > 0 ? totalArea[0].total.toFixed(2) : 0,
+                    totalArea: totalAreaValue.toFixed(2),
                     totalUnits: totalUnitsValue.toFixed(0),
                     totalCollected: totalCollectedValue.toFixed(0),
                     totalDebt: totalDebtValue.toFixed(0),

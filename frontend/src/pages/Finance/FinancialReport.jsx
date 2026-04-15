@@ -16,7 +16,7 @@ const { Title, Text } = Typography;
 const { Option } = Select;
 
 const FinancialReport = () => {
-  const [selectedPeriod, setSelectedPeriod] = useState('q4-2023');
+  const [selectedPeriod, setSelectedPeriod] = useState('q2-2026');
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalRecords, setTotalRecords] = useState(0);
@@ -38,22 +38,60 @@ const FinancialReport = () => {
       try {
         setLoading(true);
         const token = localStorage.getItem('token');
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+        
+        console.log('🔍 Financial Reports - Debug Info:');
+        console.log('- Token exists:', !!token);
+        console.log('- User role:', user.role);
+        console.log('- Selected period:', selectedPeriod);
+        
+        if (!token) {
+          console.error('❌ No token found');
+          return;
+        }
+
+        if (user.role !== 'finance' && user.role !== 'admin') {
+          console.error('❌ User role not authorized:', user.role);
+          return;
+        }
+
+        console.log('🚀 Fetching financial reports...');
+        
         const response = await axios.get('http://localhost:5000/api/finance/reports', {
           params: {
             period: selectedPeriod,
             page: currentPage,
             limit: 10
           },
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { 
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
         });
 
+        console.log('✅ Financial Reports API response:', response.data);
+
         if (response.data.success) {
+          console.log('📊 Setting report data:');
+          console.log('- Stats:', response.data.data.stats);
+          console.log('- Report items:', response.data.data.reportData.length);
+          
           setStats(response.data.data.stats);
           setReportData(response.data.data.reportData);
           setTotalRecords(response.data.data.total);
+        } else {
+          console.error('❌ API returned success: false');
         }
       } catch (error) {
-        console.error('Error fetching financial reports:', error);
+        console.error('❌ Error fetching financial reports:', error);
+        console.error('- Error response:', error.response?.data);
+        
+        if (error.response?.status === 401) {
+          console.log('🔄 Token expired, redirecting to login...');
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          window.location.href = '/login';
+        }
       } finally {
         setLoading(false);
       }
@@ -180,10 +218,14 @@ const FinancialReport = () => {
             onChange={setSelectedPeriod}
             style={{ width: 200 }}
           >
-            <Option value="q1-2023">Quý 1, 2023</Option>
-            <Option value="q2-2023">Quý 2, 2023</Option>
-            <Option value="q3-2023">Quý 3, 2023</Option>
-            <Option value="q4-2023">Quý 4, 2023</Option>
+            <Option value="q1-2026">Quý 1, 2026</Option>
+            <Option value="q2-2026">Quý 2, 2026</Option>
+            <Option value="q3-2026">Quý 3, 2026</Option>
+            <Option value="q4-2026">Quý 4, 2026</Option>
+            <Option value="q1-2025">Quý 1, 2025</Option>
+            <Option value="q2-2025">Quý 2, 2025</Option>
+            <Option value="q3-2025">Quý 3, 2025</Option>
+            <Option value="q4-2025">Quý 4, 2025</Option>
           </Select>
         </div>
       </Card>

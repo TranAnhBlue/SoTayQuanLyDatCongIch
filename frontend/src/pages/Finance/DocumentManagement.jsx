@@ -37,11 +37,28 @@ const DocumentManagement = () => {
       try {
         setLoading(true);
         const token = localStorage.getItem('token');
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+        
+        console.log('🔍 Documents Management - Debug Info:');
+        console.log('- Token exists:', !!token);
+        console.log('- User role:', user.role);
         
         if (!token) {
-          console.error('No token found');
+          console.error('❌ No token found');
           return;
         }
+
+        if (user.role !== 'finance' && user.role !== 'admin') {
+          console.error('❌ User role not authorized:', user.role);
+          return;
+        }
+
+        console.log('🚀 Fetching documents with params:', {
+          type: selectedType,
+          time: selectedTime,
+          page: currentPage,
+          limit: 10
+        });
 
         const response = await axios.get('http://localhost:5000/api/finance/documents', {
           params: {
@@ -50,27 +67,48 @@ const DocumentManagement = () => {
             page: currentPage,
             limit: 10
           },
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { 
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
         });
 
-        console.log('Documents API response:', response.data);
+        console.log('✅ Documents API response:', response.data);
 
         if (response.data.success) {
+          console.log('✅ Documents API response:', response.data);
+          
           setDocuments(response.data.data.documents);
           setTotalDocuments(response.data.data.total);
           
           // Calculate stats from data
+          const docs = response.data.data.documents;
+          const pendingCount = docs.filter(d => d.status === 'pending').length;
+          const totalValue = docs.reduce((sum, d) => sum + d.amount, 0) / 1000000000;
+          
           setStats({
             totalDocuments: response.data.data.total,
-            pendingApproval: response.data.data.documents.filter(d => d.status === 'pending').length,
-            totalValue: response.data.data.documents.reduce((sum, d) => sum + d.amount, 0) / 1000000000,
+            pendingApproval: pendingCount,
+            totalValue: totalValue,
             collectionRate: 82 // This would need a separate calculation
           });
+          
+          console.log('📊 Stats calculated:', {
+            totalDocuments: response.data.data.total,
+            pendingApproval: pendingCount,
+            totalValue: totalValue.toFixed(1) + ' tỷ VNĐ'
+          });
+        } else {
+          console.error('❌ API returned success: false');
         }
       } catch (error) {
-        console.error('Error fetching documents:', error);
+        console.error('❌ Error fetching documents:', error);
+        console.error('- Error response:', error.response?.data);
+        
         if (error.response?.status === 401) {
+          console.log('🔄 Token expired, redirecting to login...');
           localStorage.removeItem('token');
+          localStorage.removeItem('user');
           window.location.href = '/login';
         }
       } finally {
