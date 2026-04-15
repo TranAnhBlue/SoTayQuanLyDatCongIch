@@ -135,12 +135,9 @@ const OfficerLayout = () => {
               onClick={handleMenuClick}
               style={{ borderRight: 0 }}
               items={[
-                { key: '/officer/dashboard', icon: <AppstoreOutlined />, label: 'Tổng quan tài chính' },
+                { key: '/officer/dashboard', icon: <AppstoreOutlined />, label: 'Tổng quan địa chính' },
                 { type: 'divider', style: { margin: '8px 0', backgroundColor: 'transparent' } },
-                { key: '/officer/documents', icon: <FileTextOutlined />, label: 'Quản lý chứng từ' },
-                { key: '/officer/debt', icon: <HistoryOutlined />, label: 'Thu nộp & Công nợ' },
-                { key: '/officer/reports', icon: <FolderOutlined />, label: 'Báo cáo tài chính' },
-                { type: 'divider', style: { margin: '8px 0', backgroundColor: 'transparent' } },
+                { key: '/officer/land-requests', icon: <FileTextOutlined />, label: 'Đơn xin thuê đất' },
                 { key: '/officer/land-parcels', icon: <EnvironmentOutlined />, label: 'Quản lý thửa đất' },
                 { key: '/officer/contracts', icon: <FileTextOutlined />, label: 'Quản lý hợp đồng' },
                 { type: 'divider', style: { margin: '8px 0', backgroundColor: 'transparent' } },

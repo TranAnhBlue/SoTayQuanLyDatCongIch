@@ -534,10 +534,10 @@ exports.updateLandRequest = async (req, res) => {
             return res.status(404).json({ message: 'Không tìm thấy đơn xin thuê đất' });
         }
         
-        // Chỉ cho phép cập nhật khi trạng thái là 'Yêu cầu bổ sung'
-        if (request.status !== 'Yêu cầu bổ sung') {
+        // Chỉ cho phép cập nhật khi trạng thái là 'Chờ xử lý' hoặc 'Yêu cầu bổ sung'
+        if (request.status !== 'Chờ xử lý' && request.status !== 'Yêu cầu bổ sung') {
             return res.status(400).json({ 
-                message: 'Chỉ có thể cập nhật đơn có trạng thái "Yêu cầu bổ sung"' 
+                message: 'Chỉ có thể cập nhật đơn có trạng thái "Chờ xử lý" hoặc "Yêu cầu bổ sung"' 
             });
         }
         
@@ -571,5 +571,50 @@ exports.updateLandRequest = async (req, res) => {
         }
         
         res.status(500).json({ message: 'Lỗi máy chủ', error: error.message });
+    }
+};
+
+// @desc    Delete land request (only if status is 'Chờ xử lý')
+// @route   DELETE /api/renter/land-requests/:id
+// @access  Private (Renter only)
+exports.deleteLandRequest = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { id } = req.params;
+        
+        const LandRequest = require('../models/LandRequest');
+        const request = await LandRequest.findOne({ 
+            _id: id, 
+            requesterId: userId 
+        });
+        
+        if (!request) {
+            return res.status(404).json({ 
+                success: false,
+                message: 'Không tìm thấy đơn xin thuê đất' 
+            });
+        }
+        
+        // Chỉ cho phép xóa khi trạng thái là 'Chờ xử lý'
+        if (request.status !== 'Chờ xử lý') {
+            return res.status(400).json({ 
+                success: false,
+                message: 'Chỉ có thể xóa đơn có trạng thái "Chờ xử lý"' 
+            });
+        }
+        
+        await LandRequest.findByIdAndDelete(id);
+        
+        res.status(200).json({
+            success: true,
+            message: 'Đã xóa đơn xin thuê đất thành công'
+        });
+    } catch (error) {
+        console.error('[Renter deleteLandRequest]', error);
+        res.status(500).json({ 
+            success: false,
+            message: 'Lỗi máy chủ', 
+            error: error.message 
+        });
     }
 };

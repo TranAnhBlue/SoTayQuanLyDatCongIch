@@ -37,8 +37,33 @@ const AdminApprovals = () => {
 
   const handleApprove = async (record) => {
     try {
-      await axios.post(`http://localhost:5000/api/admin/approvals/${record.key}/approve`);
-      message.success(`Đã phê duyệt hồ sơ ${record.code}!`);
+      if (record.actionType === 'approve-request') {
+        // Approve land request
+        const token = localStorage.getItem('token');
+        await axios.put(
+          `http://localhost:5000/api/admin/land-requests/${record.key}/status`,
+          { status: 'Đã phê duyệt', notes: 'Đã phê duyệt bởi Admin' },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        message.success(`Đã phê duyệt đơn xin thuê ${record.code}!`);
+      } else if (record.actionType === 'create-contract') {
+        // Create contract from approved request
+        const token = localStorage.getItem('token');
+        await axios.post(
+          `http://localhost:5000/api/admin/land-requests/${record.key}/create-contract`,
+          { 
+            annualPrice: 50000, // Default price per m2/year
+            startDate: record.startDate,
+            additionalTerms: ''
+          },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        message.success(`Đã tạo hợp đồng từ đơn ${record.code}!`);
+      } else {
+        // Approve contract
+        await axios.post(`http://localhost:5000/api/admin/approvals/${record.key}/approve`);
+        message.success(`Đã phê duyệt hồ sơ ${record.code}!`);
+      }
       fetchData(activeTab);
     } catch (e) {
       message.error('Phê duyệt thất bại.');
@@ -57,7 +82,18 @@ const AdminApprovals = () => {
       return;
     }
     try {
-      await axios.post(`http://localhost:5000/api/admin/approvals/${selectedRecord.key}/reject`, { reason: rejectReason });
+      if (selectedRecord.actionType === 'approve-request') {
+        // Reject land request
+        const token = localStorage.getItem('token');
+        await axios.put(
+          `http://localhost:5000/api/admin/land-requests/${selectedRecord.key}/status`,
+          { status: 'Từ chối', rejectionReason: rejectReason, notes: 'Đã từ chối bởi Admin' },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+      } else {
+        // Reject contract
+        await axios.post(`http://localhost:5000/api/admin/approvals/${selectedRecord.key}/reject`, { reason: rejectReason });
+      }
       message.warning(`Đã từ chối hồ sơ ${selectedRecord.code}.`);
       setIsRejectModalVisible(false);
       fetchData(activeTab);
@@ -72,7 +108,7 @@ const AdminApprovals = () => {
   };
 
   const handleTabChange = (key) => {
-    const tabMap = { '1': 'pending', '2': 'approved', '3': 'violation', '4': 'rejected' };
+    const tabMap = { '1': 'pending', '2': 'approved', '3': 'violation', '4': 'rejected', '5': 'land-requests' };
     const tab = tabMap[key];
     setActiveTab(tab);
     fetchData(tab);
@@ -182,6 +218,40 @@ const AdminApprovals = () => {
               </Button>
             </>
           )}
+          {activeTab === 'land-requests' && (
+            <>
+              {record.actionType === 'approve-request' && (
+                <>
+                  <Button 
+                    type="primary" 
+                    size="small"
+                    style={{ backgroundColor: '#1e7e34', borderRadius: '4px', fontWeight: 600 }}
+                    onClick={() => handleApprove(record)}
+                  >
+                    Phê duyệt
+                  </Button>
+                  <Button 
+                    danger 
+                    size="small"
+                    style={{ borderRadius: '4px', fontWeight: 600 }}
+                    onClick={() => handleOpenReject(record)}
+                  >
+                    Từ chối
+                  </Button>
+                </>
+              )}
+              {record.actionType === 'create-contract' && (
+                <Button 
+                  type="primary" 
+                  size="small"
+                  style={{ backgroundColor: '#002e42', borderRadius: '4px', fontWeight: 600 }}
+                  onClick={() => handleApprove(record)}
+                >
+                  Tạo hợp đồng
+                </Button>
+              )}
+            </>
+          )}
           <Button size="small" onClick={() => handleOpenDetail(record)}>Chi tiết</Button>
         </Space>
       )
@@ -245,7 +315,7 @@ const AdminApprovals = () => {
       {/* Main Table Card */}
       <Card variant="borderless" style={{ borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)', marginBottom: '24px' }} styles={{ body: { padding: 0 } }}>
         <Tabs 
-          activeKey={activeTab === 'pending' ? '1' : activeTab === 'approved' ? '2' : activeTab === 'violation' ? '3' : '4'} 
+          activeKey={activeTab === 'pending' ? '1' : activeTab === 'approved' ? '2' : activeTab === 'violation' ? '3' : activeTab === 'rejected' ? '4' : '5'} 
           style={{ padding: '0 24px', paddingTop: '16px' }}
           tabBarStyle={{ marginBottom: 0, borderBottom: '1px solid #f0f0f0' }}
           onChange={handleTabChange}
@@ -265,6 +335,10 @@ const AdminApprovals = () => {
             {
               key: '4',
               label: <span style={{ fontWeight: 'bold', color: activeTab === 'rejected' ? '#1e7e34' : '#8c8c8c', fontSize: '14px' }}>Đã từ chối ({data.stats?.rejected || 0})</span>,
+            },
+            {
+              key: '5',
+              label: <span style={{ fontWeight: 'bold', color: activeTab === 'land-requests' ? '#1e7e34' : '#8c8c8c', fontSize: '14px' }}>Đơn xin thuê ({data.stats?.landRequests || 0})</span>,
             }
           ]}
         />

@@ -18,6 +18,7 @@ import {
   PlusOutlined, 
   EyeOutlined, 
   EditOutlined,
+  DeleteOutlined,
   FileTextOutlined,
   ClockCircleOutlined,
   CheckCircleOutlined,
@@ -71,13 +72,41 @@ const LandRequests = () => {
     }
   };
 
-  // Handle edit (only for requests that need more info)
+  // Handle edit (only for pending requests)
   const handleEdit = (record) => {
-    if (record.status === 'Yêu cầu bổ sung') {
+    if (record.status === 'Chờ xử lý' || record.status === 'Yêu cầu bổ sung') {
       navigate(`/renter/land-requests/edit/${record._id}`);
     } else {
-      message.warning('Chỉ có thể chỉnh sửa đơn có trạng thái "Yêu cầu bổ sung"');
+      message.warning('Chỉ có thể chỉnh sửa đơn có trạng thái "Chờ xử lý" hoặc "Yêu cầu bổ sung"');
     }
+  };
+
+  // Handle delete (only for pending requests)
+  const handleDelete = (record) => {
+    if (record.status !== 'Chờ xử lý') {
+      message.warning('Chỉ có thể xóa đơn có trạng thái "Chờ xử lý"');
+      return;
+    }
+
+    Modal.confirm({
+      title: 'Xác nhận xóa đơn xin thuê đất',
+      content: `Bạn có chắc chắn muốn xóa đơn ${record.requestCode}? Hành động này không thể hoàn tác.`,
+      okText: 'Xóa',
+      okType: 'danger',
+      cancelText: 'Hủy',
+      onOk: async () => {
+        try {
+          const response = await axios.delete(`http://localhost:5000/api/renter/land-requests/${record._id}`);
+          if (response.data.success) {
+            message.success('Đã xóa đơn xin thuê đất thành công');
+            fetchRequests(); // Reload the list
+          }
+        } catch (error) {
+          console.error('Error deleting request:', error);
+          message.error('Lỗi khi xóa đơn xin thuê đất');
+        }
+      }
+    });
   };
 
   // Get status color and icon
@@ -161,7 +190,7 @@ const LandRequests = () => {
     {
       title: 'Thao tác',
       key: 'actions',
-      width: 120,
+      width: 150,
       fixed: 'right',
       render: (_, record) => (
         <Space size="small">
@@ -170,13 +199,26 @@ const LandRequests = () => {
             icon={<EyeOutlined />} 
             size="small"
             onClick={() => handleViewDetails(record)}
+            title="Xem chi tiết"
           />
-          {record.status === 'Yêu cầu bổ sung' && (
+          {(record.status === 'Chờ xử lý' || record.status === 'Yêu cầu bổ sung') && (
             <Button 
               type="text" 
               icon={<EditOutlined />} 
               size="small"
               onClick={() => handleEdit(record)}
+              title="Chỉnh sửa"
+              style={{ color: '#1890ff' }}
+            />
+          )}
+          {record.status === 'Chờ xử lý' && (
+            <Button 
+              type="text" 
+              icon={<DeleteOutlined />} 
+              size="small"
+              danger
+              onClick={() => handleDelete(record)}
+              title="Xóa đơn"
             />
           )}
         </Space>

@@ -202,6 +202,30 @@ exports.getApprovals = async (req, res) => {
                 urgencyColor: v.statusColor,
                 actionType: 'violation'
             }));
+        } else if (tab === 'land-requests') {
+            // Land requests tab
+            const LandRequest = require('../models/LandRequest');
+            const landRequests = await LandRequest.find({ status: { $in: ['Chờ xử lý', 'Đang xem xét', 'Đã phê duyệt'] } })
+                .sort({ createdAt: -1 })
+                .lean();
+            
+            formatted = landRequests.map((lr, i) => ({
+                key: lr._id.toString(),
+                code: lr.requestCode,
+                name: lr.requesterName,
+                type: lr.status === 'Đã phê duyệt' ? 'ĐÃ PHÊ DUYỆT' : 'ĐƠN XIN THUÊ',
+                typeColor: lr.status === 'Đã phê duyệt' ? 'success' : (lr.status === 'Chờ xử lý' ? 'warning' : 'processing'),
+                location: lr.requestedLocation,
+                details: `${lr.requestedArea.toLocaleString('vi-VN')} m² • ${lr.landUse}`,
+                urgency: lr.status === 'Chờ xử lý' && i === 0 ? 'Khẩn' : 'Thường',
+                urgencyColor: lr.status === 'Chờ xử lý' && i === 0 ? 'error' : 'default',
+                actionType: lr.status === 'Đã phê duyệt' ? 'create-contract' : 'approve-request',
+                requestData: lr,
+                startDate: lr.preferredStartDate,
+                area: lr.requestedArea,
+                purpose: lr.landUse,
+                renterId: lr.requesterId
+            }));
         } else {
             // Map tab -> status
             const statusMap = {
@@ -238,6 +262,10 @@ exports.getApprovals = async (req, res) => {
         const approvedCount = await Contract.countDocuments({ status: 'ĐANG THUÊ' });
         const rejectedCount = await Contract.countDocuments({ status: 'ĐÃ TỪ CHỐI' });
         const violationCount = await Violation.countDocuments({});
+        
+        // Land requests count
+        const LandRequest = require('../models/LandRequest');
+        const landRequestsCount = await LandRequest.countDocuments({ status: { $in: ['Chờ xử lý', 'Đang xem xét', 'Đã phê duyệt'] } });
 
         res.json({
             approvalData: formatted,
@@ -246,6 +274,7 @@ exports.getApprovals = async (req, res) => {
                 approved: approvedCount,
                 rejected: rejectedCount,
                 violations: violationCount,
+                landRequests: landRequestsCount
             }
         });
     } catch (error) {

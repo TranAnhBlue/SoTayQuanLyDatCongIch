@@ -103,6 +103,7 @@ router.get('/renter/land-requests', renterController.getLandRequests);
 router.post('/renter/land-requests', renterController.createLandRequest);
 router.get('/renter/land-requests/:id', renterController.getLandRequest);
 router.put('/renter/land-requests/:id', renterController.updateLandRequest);
+router.delete('/renter/land-requests/:id', renterController.deleteLandRequest);
 
 // ======================================================
 //  ADMIN PORTAL ROUTES (Protected)

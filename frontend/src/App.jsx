@@ -27,6 +27,7 @@ import ResetPassword from './pages/Auth/ResetPassword';
 import ProfileSettings from './pages/Profile/ProfileSettings';
 import FileUploadTest from './pages/Test/FileUploadTest';
 import OfficerDashboard from './pages/Officer/OfficerDashboard';
+import OfficerLandRequestManagement from './pages/Officer/LandRequestManagement';
 import LandParcelDetail from './pages/Officer/LandParcelDetail';
 import FinanceDashboard from './pages/Finance/FinanceDashboard';
 import DocumentManagement from './pages/Finance/DocumentManagement';
@@ -122,6 +123,7 @@ function App() {
             <Route path="contract-history" element={<ContractHistory />} />
             <Route path="land-requests" element={<LandRequests />} />
             <Route path="create-land-request" element={<CreateLandRequest />} />
+            <Route path="land-requests/edit/:id" element={<CreateLandRequest />} />
             <Route path="create-land-request-simple" element={<CreateLandRequestSimple />} />
             <Route path="finance" element={<Finance />} />
             <Route path="feedback" element={<Feedback />} />
@@ -158,6 +160,7 @@ function App() {
             } 
           >
             <Route path="dashboard" element={<OfficerDashboard />} />
+            <Route path="land-requests" element={<OfficerLandRequestManagement />} />
             <Route path="land-parcels" element={<LandParcels />} />
             <Route path="land-parcels/:id" element={<LandParcelDetail />} />
             <Route path="contracts" element={<ContractHistory />} />

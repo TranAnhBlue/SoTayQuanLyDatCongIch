@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Card, 
   Form, 
@@ -14,7 +14,8 @@ import {
   Typography, 
   message,
   Space,
-  Divider
+  Divider,
+  Spin
 } from 'antd';
 import { 
   UserOutlined, 
@@ -25,7 +26,7 @@ import {
   SendOutlined,
   ArrowLeftOutlined
 } from '@ant-design/icons';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import axios from 'axios';
 import dayjs from 'dayjs';
@@ -38,10 +39,62 @@ const CreateLandRequest = () => {
   const [form] = Form.useForm();
   const [currentStep, setCurrentStep] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [loadingData, setLoadingData] = useState(false);
   const [fileList, setFileList] = useState([]);
   const [formData, setFormData] = useState({}); // Store form data across steps
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { id } = useParams(); // Get ID from URL for edit mode
+  const isEditMode = !!id;
+
+  // Load existing request data if in edit mode
+  useEffect(() => {
+    if (isEditMode && id) {
+      loadRequestData(id);
+    }
+  }, [id, isEditMode]);
+
+  const loadRequestData = async (requestId) => {
+    setLoadingData(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`http://localhost:5000/api/renter/land-requests/${requestId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      if (response.data.success) {
+        const request = response.data.request;
+        
+        // Format data for form
+        const formattedData = {
+          requesterName: request.requesterName,
+          requesterPhone: request.requesterPhone,
+          requesterIdCard: request.requesterIdCard,
+          requesterAddress: request.requesterAddress,
+          requestedArea: request.requestedArea,
+          requestedDuration: request.requestedDuration,
+          requestedLocation: request.requestedLocation,
+          landUse: request.landUse,
+          landUseDetail: request.landUseDetail,
+          preferredStartDate: request.preferredStartDate ? dayjs(request.preferredStartDate) : null,
+          monthlyIncome: request.financialCapacity?.monthlyIncome,
+          bankAccount: request.financialCapacity?.bankAccount,
+          bankName: request.financialCapacity?.bankName,
+          experience: request.experience,
+          businessPlan: request.businessPlan
+        };
+        
+        setFormData(formattedData);
+        form.setFieldsValue(formattedData);
+      }
+    } catch (error) {
+      console.error('Error loading request:', error);
+      message.error('Không thể tải thông tin đơn xin thuê đất');
+      navigate('/renter/land-requests');
+    } finally {
+      setLoadingData(false);
+    }
+  };
 
   // Set initial values when user data is available
   React.useEffect(() => {
@@ -218,10 +271,19 @@ const CreateLandRequest = () => {
         return;
       }
 
-      const response = await axios.post('http://localhost:5000/api/renter/land-requests', requestData);
+      const response = isEditMode 
+        ? await axios.put(`http://localhost:5000/api/renter/land-requests/${id}`, requestData, {
+            headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+          })
+        : await axios.post('http://localhost:5000/api/renter/land-requests', requestData, {
+            headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+          });
       
       if (response.data.success) {
-        message.success('Gửi đơn xin thuê đất thành công! Chúng tôi sẽ xem xét và phản hồi trong 5-7 ngày làm việc.');
+        message.success(isEditMode 
+          ? 'Cập nhật đơn xin thuê đất thành công!' 
+          : 'Gửi đơn xin thuê đất thành công! Chúng tôi sẽ xem xét và phản hồi trong 5-7 ngày làm việc.'
+        );
         navigate('/renter/land-requests');
       }
     } catch (error) {
@@ -553,6 +615,15 @@ const CreateLandRequest = () => {
 
   return (
     <div>
+      {loadingData ? (
+        <Card style={{ textAlign: 'center', padding: '60px 20px' }}>
+          <Spin size="large" />
+          <div style={{ marginTop: '20px' }}>
+            <Text>Đang tải thông tin đơn xin thuê đất...</Text>
+          </div>
+        </Card>
+      ) : (
+        <>
       {/* Header */}
       <div style={{ marginBottom: '24px' }}>
         <Button 
@@ -563,9 +634,11 @@ const CreateLandRequest = () => {
           Quay lại
         </Button>
         <Title level={2} style={{ margin: 0, color: '#002e42' }}>
-          Tạo đơn xin thuê đất
+          {isEditMode ? 'Chỉnh sửa đơn xin thuê đất' : 'Tạo đơn xin thuê đất'}
         </Title>
-        <Text type="secondary">Điền đầy đủ thông tin để tạo đơn xin thuê đất công ích</Text>
+        <Text type="secondary">
+          {isEditMode ? 'Cập nhật thông tin đơn xin thuê đất của bạn' : 'Điền đầy đủ thông tin để tạo đơn xin thuê đất công ích'}
+        </Text>
       </div>
 
       {/* Steps */}
@@ -610,12 +683,14 @@ const CreateLandRequest = () => {
                 onClick={handleNext}
                 style={{ backgroundColor: '#1e7e34' }}
               >
-                Gửi đơn xin thuê đất
+                {isEditMode ? 'Cập nhật đơn xin thuê đất' : 'Gửi đơn xin thuê đất'}
               </Button>
             )}
           </div>
         </div>
       </Card>
+        </>
+      )}
     </div>
   );
 };
