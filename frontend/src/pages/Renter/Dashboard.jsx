@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Row, Col, Card, Typography, Input, Button, Tag, Steps, List, Modal, message } from 'antd';
+import { Row, Col, Card, Typography, Input, Button, Tag, Steps, List, Modal, message, InputNumber } from 'antd';
 import { 
   SearchOutlined, 
   EnvironmentOutlined, 
@@ -13,7 +13,8 @@ import {
   TransactionOutlined,
   MessageOutlined,
   QuestionCircleOutlined,
-  CreditCardOutlined
+  CreditCardOutlined,
+  ArrowLeftOutlined
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -24,6 +25,10 @@ const Dashboard = () => {
   const [data, setData] = useState({ contracts: [], recentTransactions: [] });
   const [searchValue, setSearchValue] = useState('');
   const [paymentGuideVisible, setPaymentGuideVisible] = useState(false);
+  const [paymentModalVisible, setPaymentModalVisible] = useState(false);
+  const [selectedContract, setSelectedContract] = useState(null);
+  const [payAmount, setPayAmount] = useState(0);
+  const [showQR, setShowQR] = useState(false);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -80,9 +85,71 @@ const Dashboard = () => {
   };
 
   // Xử lý thanh toán
-  const handlePayment = () => {
-    navigate('/renter/finance');
+  const handlePayment = (contract) => {
+    setSelectedContract(contract);
+    const annualAmount = (contract.annualPrice || 50000) * contract.area;
+    setPayAmount(annualAmount);
+    setPaymentModalVisible(true);
+    setShowQR(false);
   };
+
+  const handleShowQR = () => {
+    if (!payAmount || payAmount < 1000) {
+      message.warning('Vui lòng nhập số tiền thanh toán hợp lệ (tối thiểu 1.000 VNĐ)');
+      return;
+    }
+    setShowQR(true);
+  };
+
+  const handleBackToInput = () => {
+    setShowQR(false);
+  };
+
+  const handleConfirmPayment = async () => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      await axios.post('http://localhost:5000/api/renter/payment', {
+        amount: payAmount,
+        paymentMethod: 'Chuyển khoản'
+      }, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      message.success('Thanh toán thành công!');
+      setPaymentModalVisible(false);
+      setShowQR(false);
+      // Refresh data
+      const response = await axios.get('http://localhost:5000/api/renter/dashboard', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      setData(response.data);
+    } catch (error) {
+      console.error('Payment error:', error);
+      message.error('Thanh toán thất bại. Vui lòng thử lại.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Thông tin tài khoản ngân hàng
+  const bankInfo = {
+    bankId: '970422', // MB Bank
+    accountNo: '21111122062004',
+    accountName: 'KHO BAC NHA NUOC GIA LAM',
+    bankName: 'MB Bank - Ngân hàng Quân Đội'
+  };
+
+  // Tạo nội dung chuyển khoản
+  const transferContent = selectedContract 
+    ? `${selectedContract.contractCode} ${new Date().getTime().toString().slice(-6)}`
+    : 'THANHTOAN';
+  
+  // Tạo URL VietQR
+  const qrUrl = `https://img.vietqr.io/image/${bankInfo.bankId}-${bankInfo.accountNo}-compact2.jpg?amount=${payAmount}&addInfo=${encodeURIComponent(transferContent)}&accountName=${encodeURIComponent(bankInfo.accountName)}`;
 
   // Xử lý tải hợp đồng PDF
   const handleDownloadContract = async (contractCode) => {
@@ -250,7 +317,7 @@ const Dashboard = () => {
                 size="large" 
                 icon={<CreditCardOutlined />}
                 style={{ backgroundColor: '#002e42', height: '56px', padding: '0 32px', borderRadius: '8px' }}
-                onClick={handlePayment}
+                onClick={() => handlePayment(contract)}
               >
                 Thanh toán ngay
               </Button>
@@ -374,7 +441,10 @@ const Dashboard = () => {
           <Button key="close" onClick={() => setPaymentGuideVisible(false)}>
             Đóng
           </Button>,
-          <Button key="payment" type="primary" onClick={handlePayment} style={{ backgroundColor: '#1e7e34' }}>
+          <Button key="payment" type="primary" onClick={() => {
+            setPaymentGuideVisible(false);
+            if (contracts.length > 0) handlePayment(contracts[0]);
+          }} style={{ backgroundColor: '#1e7e34' }}>
             Thanh toán ngay
           </Button>
         ]}
@@ -393,8 +463,8 @@ const Dashboard = () => {
           <div style={{ backgroundColor: '#f5f5f5', padding: '16px', borderRadius: '8px', marginBottom: '16px' }}>
             <Text strong>Thông tin tài khoản nhận:</Text><br/>
             <Text>Tên tài khoản: KHO BẠC NHÀ NƯỚC GIA LÂM</Text><br/>
-            <Text>Số tài khoản: 1234567890</Text><br/>
-            <Text>Ngân hàng: Vietcombank - Chi nhánh Gia Lâm</Text><br/>
+            <Text>Số tài khoản: 21111122062004</Text><br/>
+            <Text>Ngân hàng: MB Bank - Ngân hàng Quân Đội</Text><br/>
             <Text>Nội dung: {contracts[0]?.contractCode || 'N/A'} - {user?.name || 'N/A'}</Text>
           </div>
 
@@ -417,6 +487,147 @@ const Dashboard = () => {
             </ul>
           </div>
         </div>
+      </Modal>
+
+      {/* Modal thanh toán với QR */}
+      <Modal
+        title={
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            {showQR && (
+              <Button 
+                type="text" 
+                icon={<ArrowLeftOutlined />} 
+                onClick={handleBackToInput}
+                style={{ marginRight: 8 }}
+              />
+            )}
+            <span>{showQR ? 'Quét mã QR để thanh toán' : 'Thanh toán tiền thuê đất'}</span>
+          </div>
+        }
+        open={paymentModalVisible}
+        onCancel={() => {
+          setPaymentModalVisible(false);
+          setShowQR(false);
+        }}
+        footer={
+          showQR ? [
+            <Button key="back" onClick={handleBackToInput}>
+              Quay lại
+            </Button>,
+            <Button key="confirm" type="primary" onClick={handleConfirmPayment} loading={loading} style={{ backgroundColor: '#1e7e34' }}>
+              Đã thanh toán
+            </Button>
+          ] : [
+            <Button key="cancel" onClick={() => setPaymentModalVisible(false)}>
+              Hủy
+            </Button>,
+            <Button key="qr" type="primary" icon={<QrcodeOutlined />} onClick={handleShowQR} style={{ backgroundColor: '#1e7e34' }}>
+              Tạo mã QR
+            </Button>
+          ]
+        }
+        width={showQR ? 500 : 520}
+      >
+        {!showQR ? (
+          // Bước 1: Nhập số tiền
+          <div>
+            {selectedContract && (
+              <div style={{ marginBottom: 16, padding: '12px', backgroundColor: '#f0f9ff', borderRadius: '8px' }}>
+                <Text strong>Hợp đồng: </Text>
+                <Text>{selectedContract.contractCode}</Text>
+                <br/>
+                <Text strong>Diện tích: </Text>
+                <Text>{selectedContract.area?.toLocaleString('vi-VN')} m²</Text>
+              </div>
+            )}
+            <p style={{ marginBottom: 16, fontSize: '15px' }}>Nhập số tiền bạn muốn nộp:</p>
+            <InputNumber
+              style={{ width: '100%' }}
+              min={1000}
+              step={1000000}
+              value={payAmount}
+              onChange={v => setPayAmount(v)}
+              formatter={v => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+              parser={v => v?.replace(/,/g, '')}
+              suffix="VNĐ"
+              size="large"
+            />
+            <div style={{ marginTop: 16, padding: '12px', backgroundColor: '#f6ffed', borderRadius: '8px', border: '1px solid #b7eb8f' }}>
+              <Text style={{ fontSize: '13px', color: '#389e0d' }}>
+                💡 <strong>Gợi ý:</strong> Số tiền thanh toán hàng năm là {((selectedContract?.annualPrice || 50000) * (selectedContract?.area || 0)).toLocaleString('vi-VN')} VNĐ
+              </Text>
+            </div>
+          </div>
+        ) : (
+          // Bước 2: Hiển thị QR code
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ marginBottom: 24 }}>
+              <div style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: 8 }}>
+                Số tiền: <span style={{ color: '#1e7e34', fontSize: '24px' }}>{payAmount?.toLocaleString('vi-VN')}</span> VNĐ
+              </div>
+              <Text type="secondary" style={{ fontSize: '13px' }}>
+                Quét mã QR bằng ứng dụng ngân hàng để thanh toán
+              </Text>
+            </div>
+
+            {/* QR Code Image */}
+            <div style={{ 
+              display: 'inline-block', 
+              padding: '16px', 
+              backgroundColor: '#fff', 
+              borderRadius: '12px',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+              marginBottom: 24
+            }}>
+              <img 
+                src={qrUrl} 
+                alt="VietQR Payment" 
+                style={{ 
+                  width: '280px', 
+                  height: '280px',
+                  display: 'block'
+                }}
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjgwIiBoZWlnaHQ9IjI4MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjgwIiBoZWlnaHQ9IjI4MCIgZmlsbD0iI2YwZjBmMCIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTYiIGZpbGw9IiM5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5RUiBDb2RlPC90ZXh0Pjwvc3ZnPg==';
+                }}
+              />
+            </div>
+
+            {/* Thông tin chuyển khoản */}
+            <div style={{ 
+              backgroundColor: '#f5f5f5', 
+              padding: '16px', 
+              borderRadius: '8px',
+              textAlign: 'left',
+              marginBottom: 16
+            }}>
+              <div style={{ marginBottom: 12 }}>
+                <BankOutlined style={{ marginRight: 8, color: '#1e7e34' }} />
+                <Text strong>Thông tin chuyển khoản</Text>
+              </div>
+              <div style={{ fontSize: '13px', lineHeight: '24px' }}>
+                <div><Text type="secondary">Ngân hàng:</Text> <Text strong>{bankInfo.bankName}</Text></div>
+                <div><Text type="secondary">Số tài khoản:</Text> <Text strong code>{bankInfo.accountNo}</Text></div>
+                <div><Text type="secondary">Tên tài khoản:</Text> <Text strong>{bankInfo.accountName}</Text></div>
+                <div><Text type="secondary">Số tiền:</Text> <Text strong style={{ color: '#1e7e34' }}>{payAmount?.toLocaleString('vi-VN')} VNĐ</Text></div>
+                <div><Text type="secondary">Nội dung:</Text> <Text strong code>{transferContent}</Text></div>
+              </div>
+            </div>
+
+            <div style={{ 
+              padding: '12px', 
+              backgroundColor: '#fff7e6', 
+              borderRadius: '8px',
+              border: '1px solid #ffd591',
+              textAlign: 'left'
+            }}>
+              <Text style={{ fontSize: '12px', color: '#ad6800' }}>
+                ⚠️ <strong>Lưu ý:</strong> Vui lòng ghi đúng nội dung chuyển khoản để hệ thống tự động cập nhật thanh toán. Sau khi chuyển khoản thành công, vui lòng chờ 15-30 phút để hệ thống xử lý.
+              </Text>
+            </div>
+          </div>
+        )}
       </Modal>
     </div>
   );
