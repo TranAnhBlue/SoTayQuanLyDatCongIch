@@ -950,15 +950,15 @@ exports.createContractFromRequest = async (req, res) => {
             parcelAddress: request.requestedLocation,
             area: request.requestedArea,
             purpose: `${request.landUse} - ${request.landUseDetail}`,
-            status: 'CHỜ DUYỆT',
+            status: 'ĐANG THUÊ', // Hợp đồng từ đơn đã duyệt -> trạng thái ĐANG THUÊ
             term: request.requestedDuration,
             startDate: startDate || request.preferredStartDate,
             endDate: new Date(new Date(startDate || request.preferredStartDate).setFullYear(
                 new Date(startDate || request.preferredStartDate).getFullYear() + request.requestedDuration
             )),
             annualPrice: annualPrice || 50000, // Default price per m2/year
-            currentDebt: (annualPrice || 50000) * request.requestedArea,
-            isHandedOver: false,
+            currentDebt: (annualPrice || 50000) * request.requestedArea * request.requestedDuration, // Tổng nợ = giá * diện tích * số năm
+            isHandedOver: true, // Đã bàn giao thực địa
             additionalTerms: additionalTerms || ''
         });
 
