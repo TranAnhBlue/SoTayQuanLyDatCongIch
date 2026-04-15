@@ -227,23 +227,21 @@ exports.createPayment = async (req, res) => {
         // Tạo mã giao dịch tự động
         const transactionCode = `GD${Date.now()}`;
         
-        // Tạo giao dịch mới
+        // Tạo giao dịch mới với trạng thái "Chờ xử lý"
         const transaction = await Transaction.create({
             contractId: contract._id,
             transactionCode,
             amount,
-            status: 'Thành công', // Mock - trong thực tế sẽ là 'Chờ xử lý'
+            status: 'Chờ xử lý', // Cần Finance duyệt
             paymentMethod: paymentMethod || 'Chuyển khoản',
             date: new Date()
         });
         
-        // Cập nhật nợ hiện tại của hợp đồng
-        contract.currentDebt = Math.max(0, contract.currentDebt - amount);
-        await contract.save();
+        // KHÔNG trừ nợ ngay - chỉ trừ sau khi Finance duyệt
         
         res.status(201).json({
             success: true,
-            message: 'Tạo giao dịch thanh toán thành công',
+            message: 'Đã gửi yêu cầu thanh toán. Vui lòng chờ bộ phận tài chính xác nhận.',
             transaction
         });
     } catch (error) {

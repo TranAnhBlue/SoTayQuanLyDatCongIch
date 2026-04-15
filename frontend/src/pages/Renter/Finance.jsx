@@ -76,7 +76,7 @@ const Finance = () => {
           'Authorization': `Bearer ${token}`
         }
       });
-      message.success('Thanh toán thành công!');
+      message.success('Đã gửi yêu cầu thanh toán. Vui lòng chờ bộ phận tài chính xác nhận.');
       setPayModal(false);
       setShowQR(false);
       fetchData(); // refresh
@@ -141,7 +141,11 @@ const Finance = () => {
       dataIndex: 'status',
       key: 'status',
       render: status => {
-        let color = status === 'Thành công' ? 'success' : 'warning';
+        let color = 'default';
+        if (status === 'Thành công') color = 'success';
+        else if (status === 'Chờ xử lý') color = 'warning';
+        else if (status === 'Từ chối') color = 'error';
+        
         return (
           <Tag color={color} style={{ borderRadius: '12px', padding: '2px 10px', border: 'none', fontWeight: 500 }}>
             {status}

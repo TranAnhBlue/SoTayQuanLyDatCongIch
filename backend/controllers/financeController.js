@@ -464,3 +464,187 @@ exports.getFinancialReports = async (req, res) => {
         });
     }
 };
+
+
+// @desc    Get pending transactions for approval
+// @route   GET /api/finance/transactions/pending
+// @access  Private (finance, admin)
+exports.getPendingTransactions = async (req, res) => {
+    try {
+        const { page = 1, limit = 10 } = req.query;
+
+        const transactions = await Transaction.find({ status: 'Chờ xử lý' })
+            .populate('contractId')
+            .sort({ date: -1 })
+            .limit(limit * 1)
+            .skip((page - 1) * limit);
+
+        const count = await Transaction.countDocuments({ status: 'Chờ xử lý' });
+
+        // Get user info for each transaction
+        const User = require('../models/User');
+        const formattedTransactions = await Promise.all(transactions.map(async (t) => {
+            let renterName = 'N/A';
+            let renterPhone = 'N/A';
+            
+            if (t.contractId) {
+                // Try to get user info from renterId
+                if (t.contractId.renterId) {
+                    try {
+                        const user = await User.findById(t.contractId.renterId);
+                        if (user) {
+                            renterName = user.name;
+                            renterPhone = user.phone || 'N/A';
+                        } else {
+                            // Fallback to renterName in contract
+                            renterName = t.contractId.renterName || 'N/A';
+                        }
+                    } catch (err) {
+                        // If renterId is not ObjectId, use renterName
+                        renterName = t.contractId.renterName || 'N/A';
+                    }
+                } else {
+                    renterName = t.contractId.renterName || 'N/A';
+                }
+            }
+            
+            return {
+                key: t._id.toString(),
+                transactionCode: t.transactionCode,
+                date: new Date(t.date).toLocaleDateString('vi-VN'),
+                time: new Date(t.date).toLocaleTimeString('vi-VN'),
+                renterName,
+                renterPhone,
+                contractCode: t.contractId?.contractCode || 'N/A',
+                amount: t.amount,
+                paymentMethod: t.paymentMethod,
+                status: t.status,
+                contractId: t.contractId?._id,
+                currentDebt: t.contractId?.currentDebt || 0
+            };
+        }));
+
+        res.status(200).json({
+            success: true,
+            data: formattedTransactions,
+            pagination: {
+                total: count,
+                page: parseInt(page),
+                limit: parseInt(limit),
+                totalPages: Math.ceil(count / limit)
+            }
+        });
+    } catch (error) {
+        console.error('[Finance getPendingTransactions]', error);
+        res.status(500).json({
+            success: false,
+            message: 'Lỗi khi lấy danh sách giao dịch chờ duyệt'
+        });
+    }
+};
+
+// @desc    Approve transaction
+// @route   POST /api/finance/transactions/:id/approve
+// @access  Private (finance, admin)
+exports.approveTransaction = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { note } = req.body;
+
+        const transaction = await Transaction.findById(id).populate('contractId');
+
+        if (!transaction) {
+            return res.status(404).json({
+                success: false,
+                message: 'Không tìm thấy giao dịch'
+            });
+        }
+
+        if (transaction.status !== 'Chờ xử lý') {
+            return res.status(400).json({
+                success: false,
+                message: 'Giao dịch này đã được xử lý'
+            });
+        }
+
+        // Cập nhật trạng thái giao dịch
+        transaction.status = 'Thành công';
+        transaction.approvedBy = req.user.id;
+        transaction.approvedAt = new Date();
+        transaction.approvalNote = note || '';
+        await transaction.save();
+
+        // Trừ nợ của hợp đồng
+        if (transaction.contractId) {
+            const contract = await Contract.findById(transaction.contractId._id);
+            if (contract) {
+                contract.currentDebt = Math.max(0, contract.currentDebt - transaction.amount);
+                await contract.save();
+            }
+        }
+
+        res.status(200).json({
+            success: true,
+            message: 'Đã duyệt giao dịch thành công',
+            transaction
+        });
+    } catch (error) {
+        console.error('[Finance approveTransaction]', error);
+        res.status(500).json({
+            success: false,
+            message: 'Lỗi khi duyệt giao dịch'
+        });
+    }
+};
+
+// @desc    Reject transaction
+// @route   POST /api/finance/transactions/:id/reject
+// @access  Private (finance, admin)
+exports.rejectTransaction = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { reason } = req.body;
+
+        if (!reason) {
+            return res.status(400).json({
+                success: false,
+                message: 'Vui lòng nhập lý do từ chối'
+            });
+        }
+
+        const transaction = await Transaction.findById(id);
+
+        if (!transaction) {
+            return res.status(404).json({
+                success: false,
+                message: 'Không tìm thấy giao dịch'
+            });
+        }
+
+        if (transaction.status !== 'Chờ xử lý') {
+            return res.status(400).json({
+                success: false,
+                message: 'Giao dịch này đã được xử lý'
+            });
+        }
+
+        // Cập nhật trạng thái giao dịch
+        transaction.status = 'Từ chối';
+        transaction.rejectedBy = req.user.id;
+        transaction.rejectedAt = new Date();
+        transaction.rejectionReason = reason;
+        await transaction.save();
+
+        res.status(200).json({
+            success: true,
+            message: 'Đã từ chối giao dịch',
+            transaction
+        });
+    } catch (error) {
+        console.error('[Finance rejectTransaction]', error);
+        res.status(500).json({
+            success: false,
+            message: 'Lỗi khi từ chối giao dịch'
+        });
+    }
+};

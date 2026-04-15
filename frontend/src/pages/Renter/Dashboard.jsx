@@ -14,7 +14,9 @@ import {
   MessageOutlined,
   QuestionCircleOutlined,
   CreditCardOutlined,
-  ArrowLeftOutlined
+  ArrowLeftOutlined,
+  ClockCircleOutlined,
+  CloseCircleOutlined
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -117,7 +119,7 @@ const Dashboard = () => {
           'Authorization': `Bearer ${token}`
         }
       });
-      message.success('Thanh toán thành công!');
+      message.success('Đã gửi yêu cầu thanh toán. Vui lòng chờ bộ phận tài chính xác nhận.');
       setPaymentModalVisible(false);
       setShowQR(false);
       // Refresh data
@@ -351,7 +353,7 @@ const Dashboard = () => {
           <Card 
             variant="borderless" 
             title={<><TransactionOutlined style={{ color: '#1e7e34', marginRight: 8 }}/> Lịch sử thanh toán</>}
-            extra={<a href="#/renter/finance" style={{ color: '#1e7e34', fontWeight: 'bold' }}>Xem tất cả</a>}
+            extra={<a href="../../renter/finance" style={{ color: '#1e7e34', fontWeight: 'bold' }}>Xem tất cả</a>}
             style={{ borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}
           >
             <List
@@ -363,9 +365,21 @@ const Dashboard = () => {
                   <List.Item.Meta title={<Text type="secondary" style={{ fontSize: '12px' }}>MÃ GD</Text>} description={<Text style={{ fontWeight: '500' }}>{item.transactionCode}</Text>} />
                   <List.Item.Meta title={<Text type="secondary" style={{ fontSize: '12px' }}>SỐ TIỀN</Text>} description={<Text style={{ fontWeight: 'bold' }}>{item.amount.toLocaleString('vi-VN')} đ</Text>} />
                   <div>
-                    <Tag icon={<CheckCircleOutlined />} color="success" style={{ borderRadius: '12px', border: 'none', backgroundColor: '#e6f4ea', color: '#1e8e3e' }}>
-                      {item.status}
-                    </Tag>
+                    {item.status === 'Thành công' && (
+                      <Tag icon={<CheckCircleOutlined />} color="success" style={{ borderRadius: '12px', border: 'none', backgroundColor: '#e6f4ea', color: '#1e8e3e' }}>
+                        {item.status}
+                      </Tag>
+                    )}
+                    {item.status === 'Chờ xử lý' && (
+                      <Tag icon={<ClockCircleOutlined />} color="warning" style={{ borderRadius: '12px', border: 'none', backgroundColor: '#fff7e6', color: '#d46b08' }}>
+                        {item.status}
+                      </Tag>
+                    )}
+                    {item.status === 'Từ chối' && (
+                      <Tag icon={<CloseCircleOutlined />} color="error" style={{ borderRadius: '12px', border: 'none', backgroundColor: '#fff1f0', color: '#cf1322' }}>
+                        {item.status}
+                      </Tag>
+                    )}
                   </div>
                 </List.Item>
               )}

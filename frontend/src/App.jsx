@@ -33,6 +33,7 @@ import FinanceDashboard from './pages/Finance/FinanceDashboard';
 import DocumentManagement from './pages/Finance/DocumentManagement';
 import DebtManagement from './pages/Finance/DebtManagement';
 import FinancialReport from './pages/Finance/FinancialReport';
+import TransactionApproval from './pages/Finance/TransactionApproval';
 import InspectorDashboard from './pages/Inspector/InspectorDashboard';
 import InspectionHistory from './pages/Inspector/InspectionHistory';
 import AuditList from './pages/Inspector/AuditList';
@@ -180,6 +181,7 @@ function App() {
             <Route path="documents" element={<DocumentManagement />} />
             <Route path="debt" element={<DebtManagement />} />
             <Route path="reports" element={<FinancialReport />} />
+            <Route path="transactions/approval" element={<TransactionApproval />} />
           </Route>
 
           {/* Inspector Routes (Thanh tra viên) */}

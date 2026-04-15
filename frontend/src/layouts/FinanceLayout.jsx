@@ -11,7 +11,8 @@ import {
   BankFilled,
   SearchOutlined,
   HistoryOutlined,
-  BarChartOutlined
+  BarChartOutlined,
+  CheckCircleOutlined
 } from '@ant-design/icons';
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -148,6 +149,7 @@ const FinanceLayout = () => {
               items={[
                 { key: '/finance/dashboard', icon: <AppstoreOutlined />, label: 'Tổng quan tài chính' },
                 { type: 'divider', style: { margin: '8px 0', backgroundColor: 'transparent' } },
+                { key: '/finance/transactions/approval', icon: <CheckCircleOutlined />, label: 'Duyệt giao dịch' },
                 { key: '/finance/documents', icon: <FileTextOutlined />, label: 'Quản lý chứng từ' },
                 { key: '/finance/debt', icon: <HistoryOutlined />, label: 'Thu nộp & Công nợ' },
                 { type: 'divider', style: { margin: '8px 0', backgroundColor: 'transparent' } },

@@ -223,6 +223,11 @@ router.get('/finance/debt', protect, authorize('finance', 'admin'), financeContr
 // Financial Reports
 router.get('/finance/reports', protect, authorize('finance', 'admin'), financeController.getFinancialReports);
 
+// Transaction Approval
+router.get('/finance/transactions/pending', protect, authorize('finance', 'admin'), financeController.getPendingTransactions);
+router.post('/finance/transactions/:id/approve', protect, authorize('finance', 'admin'), financeController.approveTransaction);
+router.post('/finance/transactions/:id/reject', protect, authorize('finance', 'admin'), financeController.rejectTransaction);
+
 // ======================================================
 //  INSPECTOR ROUTES (Thanh tra viên)
 // ======================================================
