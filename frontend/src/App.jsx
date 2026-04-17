@@ -41,11 +41,13 @@ import AuditList from './pages/Inspector/AuditList';
 import AuditDetail from './pages/Inspector/AuditDetail';
 import ViolationManagement from './pages/Inspector/ViolationManagement';
 import ProtectedRoute from './components/Auth/ProtectedRoute';
+import RoleProtectedRoute from './components/ProtectedRoute/RoleProtectedRoute';
 import AdminLayout from './layouts/AdminLayout';
 import RenterLayout from './layouts/RenterLayout';
 import OfficerLayout from './layouts/OfficerLayout';
 import FinanceLayout from './layouts/FinanceLayout';
 import InspectorLayout from './layouts/InspectorLayout';
+import NotFound from './pages/Error/NotFound';
 import { getToken } from './utils/auth';
 import axios from 'axios';
 import './App.css';
@@ -98,9 +100,9 @@ function App() {
           <Route 
             path="/profile" 
             element={
-              <ProtectedRoute allowedRoles={['admin', 'officer', 'renter', 'finance', 'inspector']}>
+              <RoleProtectedRoute allowedRoles={['admin', 'officer', 'renter', 'finance', 'inspector']}>
                 <ProfileSettings />
-              </ProtectedRoute>
+              </RoleProtectedRoute>
             } 
           />
 
@@ -108,9 +110,9 @@ function App() {
           <Route 
             path="/test/file-upload" 
             element={
-              <ProtectedRoute allowedRoles={['admin', 'officer', 'renter', 'finance', 'inspector']}>
+              <RoleProtectedRoute allowedRoles={['admin', 'officer', 'renter', 'finance', 'inspector']}>
                 <FileUploadTest />
-              </ProtectedRoute>
+              </RoleProtectedRoute>
             } 
           />
 
@@ -118,9 +120,9 @@ function App() {
           <Route 
             path="/renter" 
             element={
-              <ProtectedRoute allowedRoles={['renter', 'admin']}>
+              <RoleProtectedRoute allowedRoles={['renter']}>
                 <RenterLayout />
-              </ProtectedRoute>
+              </RoleProtectedRoute>
             } 
           >
             <Route path="dashboard" element={<RenterDashboard />} />
@@ -138,9 +140,9 @@ function App() {
           <Route 
             path="/admin" 
             element={
-              <ProtectedRoute allowedRoles={['admin', 'officer']}>
+              <RoleProtectedRoute allowedRoles={['admin']}>
                 <AdminLayout />
-              </ProtectedRoute>
+              </RoleProtectedRoute>
             } 
           >
             <Route path="dashboard" element={<AdminDashboard />} />
@@ -159,9 +161,9 @@ function App() {
           <Route 
             path="/officer" 
             element={
-              <ProtectedRoute allowedRoles={['officer', 'admin']}>
+              <RoleProtectedRoute allowedRoles={['officer']}>
                 <OfficerLayout />
-              </ProtectedRoute>
+              </RoleProtectedRoute>
             } 
           >
             <Route path="dashboard" element={<OfficerDashboard />} />
@@ -176,9 +178,9 @@ function App() {
           <Route 
             path="/finance" 
             element={
-              <ProtectedRoute allowedRoles={['finance', 'admin']}>
+              <RoleProtectedRoute allowedRoles={['finance']}>
                 <FinanceLayout />
-              </ProtectedRoute>
+              </RoleProtectedRoute>
             } 
           >
             <Route path="dashboard" element={<FinanceDashboard />} />
@@ -192,9 +194,9 @@ function App() {
           <Route 
             path="/inspector" 
             element={
-              <ProtectedRoute allowedRoles={['inspector', 'admin']}>
+              <RoleProtectedRoute allowedRoles={['inspector']}>
                 <InspectorLayout />
-              </ProtectedRoute>
+              </RoleProtectedRoute>
             } 
           >
             <Route path="dashboard" element={<InspectorDashboard />} />
@@ -205,7 +207,7 @@ function App() {
           </Route>
 
           {/* Redirects */}
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </Router>
     </ConfigProvider>

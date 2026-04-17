@@ -108,7 +108,7 @@ router.delete('/renter/land-requests/:id', renterController.deleteLandRequest);
 // ======================================================
 //  ADMIN PORTAL ROUTES (Protected)
 // ======================================================
-router.use('/admin', protect, authorize('admin', 'officer'));
+router.use('/admin', protect, authorize('admin'));
 
 // Dashboard lãnh đạo: KPI tổng hợp + biểu đồ + cảnh báo
 router.get('/admin/dashboard', adminController.getDashboardData);
@@ -135,27 +135,27 @@ router.post('/admin/approvals/:id/reject', adminController.rejectContract);
 // ======================================================
 
 // Quản lý danh mục thửa đất
-router.get('/admin/land-parcels/statistics', protect, authorize('admin', 'officer'), landParcelController.getStatistics);
-router.get('/admin/land-parcels', protect, authorize('admin', 'officer'), landParcelController.getLandParcels);
-router.post('/admin/land-parcels', protect, authorize('admin', 'officer'), landParcelController.createLandParcel);
-router.get('/admin/land-parcels/:id', protect, authorize('admin', 'officer'), landParcelController.getLandParcel);
-router.put('/admin/land-parcels/:id', protect, authorize('admin', 'officer'), landParcelController.updateLandParcel);
+router.get('/admin/land-parcels/statistics', protect, authorize('admin'), landParcelController.getStatistics);
+router.get('/admin/land-parcels', protect, authorize('admin'), landParcelController.getLandParcels);
+router.post('/admin/land-parcels', protect, authorize('admin'), landParcelController.createLandParcel);
+router.get('/admin/land-parcels/:id', protect, authorize('admin'), landParcelController.getLandParcel);
+router.put('/admin/land-parcels/:id', protect, authorize('admin'), landParcelController.updateLandParcel);
 router.delete('/admin/land-parcels/:id', protect, authorize('admin'), landParcelController.deleteLandParcel);
 
 // Phê duyệt thửa đất (Admin only)
 router.put('/admin/land-parcels/:id/approve', protect, authorize('admin'), landParcelController.approveLandParcel);
 
 // Quản lý biến động đất đai
-router.post('/admin/land-parcels/:id/changes', protect, authorize('admin', 'officer'), landParcelController.addChangeHistory);
+router.post('/admin/land-parcels/:id/changes', protect, authorize('admin'), landParcelController.addChangeHistory);
 
 // ======================================================
 //  LAND REQUEST MANAGEMENT ROUTES (Admin/Officer only)
 // ======================================================
 
 // Quản lý đơn xin thuê đất
-router.get('/admin/land-requests', protect, authorize('admin', 'officer'), adminController.getLandRequests);
-router.get('/admin/land-requests/:id', protect, authorize('admin', 'officer'), adminController.getLandRequest);
-router.put('/admin/land-requests/:id/status', protect, authorize('admin', 'officer'), adminController.updateLandRequestStatus);
+router.get('/admin/land-requests', protect, authorize('admin'), adminController.getLandRequests);
+router.get('/admin/land-requests/:id', protect, authorize('admin'), adminController.getLandRequest);
+router.put('/admin/land-requests/:id/status', protect, authorize('admin'), adminController.updateLandRequestStatus);
 
 // Tạo hợp đồng từ đơn được phê duyệt (Admin only)
 router.post('/admin/land-requests/:id/create-contract', protect, authorize('admin'), adminController.createContractFromRequest);
@@ -165,9 +165,9 @@ router.post('/admin/land-requests/:id/create-contract', protect, authorize('admi
 // ======================================================
 
 // Quản lý văn bản pháp lý
-router.get('/admin/legal-documents', protect, authorize('admin', 'officer'), adminController.getLegalDocuments);
-router.post('/admin/legal-documents', protect, authorize('admin', 'officer'), adminController.createLegalDocument);
-router.put('/admin/legal-documents/:id', protect, authorize('admin', 'officer'), adminController.updateLegalDocument);
+router.get('/admin/legal-documents', protect, authorize('admin'), adminController.getLegalDocuments);
+router.post('/admin/legal-documents', protect, authorize('admin'), adminController.createLegalDocument);
+router.put('/admin/legal-documents/:id', protect, authorize('admin'), adminController.updateLegalDocument);
 router.delete('/admin/legal-documents/:id', protect, authorize('admin'), adminController.deleteLegalDocument);
 
 // ======================================================
@@ -175,7 +175,7 @@ router.delete('/admin/legal-documents/:id', protect, authorize('admin'), adminCo
 // ======================================================
 
 // Lịch sử biến động đất đai
-router.get('/admin/change-history', protect, authorize('admin', 'officer'), adminController.getChangeHistory);
+router.get('/admin/change-history', protect, authorize('admin'), adminController.getChangeHistory);
 
 // ======================================================
 //  DATA ENTRY ROUTES (Admin only)
@@ -192,57 +192,57 @@ router.post('/admin/contracts', protect, authorize('admin'), adminController.cre
 // ======================================================
 
 // Dashboard
-router.get('/officer/dashboard', protect, authorize('officer', 'admin'), officerController.getDashboard);
-router.get('/officer/recent-activities', protect, authorize('officer', 'admin'), officerController.getRecentActivities);
-router.get('/officer/alerts', protect, authorize('officer', 'admin'), officerController.getAlerts);
+router.get('/officer/dashboard', protect, authorize('officer'), officerController.getDashboard);
+router.get('/officer/recent-activities', protect, authorize('officer'), officerController.getRecentActivities);
+router.get('/officer/alerts', protect, authorize('officer'), officerController.getAlerts);
 
 // Land Parcels
-router.get('/officer/land-parcels', protect, authorize('officer', 'admin'), officerController.getLandParcels);
-router.get('/officer/land-parcels/:id', protect, authorize('officer', 'admin'), officerController.getLandParcel);
-router.post('/officer/land-parcels/:id/changes', protect, authorize('officer', 'admin'), officerController.addChangeHistory);
+router.get('/officer/land-parcels', protect, authorize('officer'), officerController.getLandParcels);
+router.get('/officer/land-parcels/:id', protect, authorize('officer'), officerController.getLandParcel);
+router.post('/officer/land-parcels/:id/changes', protect, authorize('officer'), officerController.addChangeHistory);
 
 // Contracts
-router.get('/officer/contracts', protect, authorize('officer', 'admin'), officerController.getContracts);
+router.get('/officer/contracts', protect, authorize('officer'), officerController.getContracts);
 
 // Documents
-router.get('/officer/documents', protect, authorize('officer', 'admin'), officerController.getDocuments);
+router.get('/officer/documents', protect, authorize('officer'), officerController.getDocuments);
 
 // ======================================================
 //  FINANCE ROUTES (Cán bộ Tài chính)
 // ======================================================
 
 // Dashboard
-router.get('/finance/dashboard', protect, authorize('finance', 'admin'), financeController.getDashboard);
+router.get('/finance/dashboard', protect, authorize('finance'), financeController.getDashboard);
 
 // Documents/Vouchers
-router.get('/finance/documents', protect, authorize('finance', 'admin'), financeController.getDocuments);
+router.get('/finance/documents', protect, authorize('finance'), financeController.getDocuments);
 
 // Debt Management
-router.get('/finance/debt', protect, authorize('finance', 'admin'), financeController.getDebtManagement);
+router.get('/finance/debt', protect, authorize('finance'), financeController.getDebtManagement);
 
 // Financial Reports
-router.get('/finance/reports', protect, authorize('finance', 'admin'), financeController.getFinancialReports);
+router.get('/finance/reports', protect, authorize('finance'), financeController.getFinancialReports);
 
 // Transaction Approval
-router.get('/finance/transactions/pending', protect, authorize('finance', 'admin'), financeController.getPendingTransactions);
-router.post('/finance/transactions/:id/approve', protect, authorize('finance', 'admin'), financeController.approveTransaction);
-router.post('/finance/transactions/:id/reject', protect, authorize('finance', 'admin'), financeController.rejectTransaction);
+router.get('/finance/transactions/pending', protect, authorize('finance'), financeController.getPendingTransactions);
+router.post('/finance/transactions/:id/approve', protect, authorize('finance'), financeController.approveTransaction);
+router.post('/finance/transactions/:id/reject', protect, authorize('finance'), financeController.rejectTransaction);
 
 // ======================================================
 //  INSPECTOR ROUTES (Thanh tra viên)
 // ======================================================
 
 // Dashboard
-router.get('/inspector/dashboard', protect, authorize('inspector', 'admin'), inspectorController.getDashboard);
+router.get('/inspector/dashboard', protect, authorize('inspector'), inspectorController.getDashboard);
 
 // Inspections
-router.get('/inspector/inspections', protect, authorize('inspector', 'admin'), inspectorController.getInspections);
+router.get('/inspector/inspections', protect, authorize('inspector'), inspectorController.getInspections);
 
 // Audits
-router.get('/inspector/audits/:id', protect, authorize('inspector', 'admin'), inspectorController.getAuditDetail);
+router.get('/inspector/audits/:id', protect, authorize('inspector'), inspectorController.getAuditDetail);
 
 // Violations
-router.get('/inspector/violations', protect, authorize('inspector', 'admin'), inspectorController.getViolations);
-router.post('/inspector/violations', protect, authorize('inspector', 'admin'), inspectorController.createViolation);
+router.get('/inspector/violations', protect, authorize('inspector'), inspectorController.getViolations);
+router.post('/inspector/violations', protect, authorize('inspector'), inspectorController.createViolation);
 
 module.exports = router;
