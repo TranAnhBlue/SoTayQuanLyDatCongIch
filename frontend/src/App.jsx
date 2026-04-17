@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ConfigProvider } from 'antd';
+import LandingPage from './pages/LandingPage';
 import RenterDashboard from './pages/Renter/Dashboard';
 import ContractDetail from './pages/Renter/ContractDetail';
 import ContractHistory from './pages/Renter/ContractHistory';
@@ -83,6 +84,9 @@ function App() {
     >
       <Router>
         <Routes>
+          {/* Landing Page - Public Route */}
+          <Route path="/" element={<LandingPage />} />
+          
           {/* Public Routes */}
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
@@ -201,8 +205,7 @@ function App() {
           </Route>
 
           {/* Redirects */}
-          <Route path="/" element={<Navigate to="/login" replace />} />
-          <Route path="*" element={<Navigate to="/login" replace />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Router>
     </ConfigProvider>

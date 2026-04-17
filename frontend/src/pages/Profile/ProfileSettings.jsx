@@ -94,10 +94,18 @@ const ProfileSettings = () => {
 
   // Hàm quay về dashboard theo role
   const handleGoBack = () => {
-    if (user?.role === 'admin' || user?.role === 'officer') {
+    if (user?.role === 'admin') {
       navigate('/admin/dashboard');
-    } else {
+    } else if (user?.role === 'officer') {
+      navigate('/officer/dashboard');
+    } else if (user?.role === 'renter') {
       navigate('/renter/dashboard');
+    } else if (user?.role === 'finance') {
+      navigate('/finance/dashboard');
+    } else if (user?.role === 'inspector') {
+      navigate('/inspector/dashboard');
+    } else {
+      navigate('/admin/dashboard');
     }
   };
 
