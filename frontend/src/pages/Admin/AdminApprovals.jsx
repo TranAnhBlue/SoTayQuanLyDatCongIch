@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../utils/api';
 import { Row, Col, Typography, Card, Table, Tag, Button, Tabs, Progress, Space, message, Modal, Input, Descriptions } from 'antd';
-import { 
+import {
   CheckCircleOutlined,
   FilterOutlined,
   CheckSquareOutlined,
@@ -50,7 +50,7 @@ const AdminApprovals = () => {
         const token = localStorage.getItem('token');
         await api.post(
           `/admin/land-requests/${record.key}/create-contract`,
-          { 
+          {
             annualPrice: 50000, // Default price per m2/year
             startDate: record.startDate,
             additionalTerms: ''
@@ -197,16 +197,16 @@ const AdminApprovals = () => {
         <Space size="small">
           {activeTab === 'pending' && (
             <>
-              <Button 
-                type="primary" 
+              <Button
+                type="primary"
                 size="small"
                 style={{ backgroundColor: '#1e7e34', borderRadius: '4px', fontWeight: 600 }}
                 onClick={() => handleApprove(record)}
               >
                 Duyệt
               </Button>
-              <Button 
-                danger 
+              <Button
+                danger
                 size="small"
                 style={{ borderRadius: '4px', fontWeight: 600 }}
                 onClick={() => handleOpenReject(record)}
@@ -219,16 +219,16 @@ const AdminApprovals = () => {
             <>
               {record.actionType === 'approve-request' && (
                 <>
-                  <Button 
-                    type="primary" 
+                  <Button
+                    type="primary"
                     size="small"
                     style={{ backgroundColor: '#1e7e34', borderRadius: '4px', fontWeight: 600 }}
                     onClick={() => handleApprove(record)}
                   >
                     Phê duyệt
                   </Button>
-                  <Button 
-                    danger 
+                  <Button
+                    danger
                     size="small"
                     style={{ borderRadius: '4px', fontWeight: 600 }}
                     onClick={() => handleOpenReject(record)}
@@ -238,8 +238,8 @@ const AdminApprovals = () => {
                 </>
               )}
               {record.actionType === 'create-contract' && (
-                <Button 
-                  type="primary" 
+                <Button
+                  type="primary"
                   size="small"
                   style={{ backgroundColor: '#002e42', borderRadius: '4px', fontWeight: 600 }}
                   onClick={() => handleApprove(record)}
@@ -311,8 +311,8 @@ const AdminApprovals = () => {
 
       {/* Main Table Card */}
       <Card variant="borderless" style={{ borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)', marginBottom: '24px' }} styles={{ body: { padding: 0 } }}>
-        <Tabs 
-          activeKey={activeTab === 'pending' ? '1' : activeTab === 'approved' ? '2' : activeTab === 'violation' ? '3' : activeTab === 'rejected' ? '4' : '5'} 
+        <Tabs
+          activeKey={activeTab === 'pending' ? '1' : activeTab === 'approved' ? '2' : activeTab === 'violation' ? '3' : activeTab === 'rejected' ? '4' : '5'}
           style={{ padding: '0 24px', paddingTop: '16px' }}
           tabBarStyle={{ marginBottom: 0, borderBottom: '1px solid #f0f0f0' }}
           onChange={handleTabChange}
@@ -339,15 +339,15 @@ const AdminApprovals = () => {
             }
           ]}
         />
-        
-        <Table 
-          columns={columns} 
-          dataSource={approvalData} 
+
+        <Table
+          columns={columns}
+          dataSource={approvalData}
           pagination={{
             pageSize: 4,
             showTotal: (total, range) => <span style={{ color: '#8c8c8c' }}>Hiển thị {range[1]} trên tổng số {total} hồ sơ chờ duyệt</span>,
             style: { padding: '16px 24px', margin: 0, borderTop: '1px solid #f0f0f0' }
-          }} 
+          }}
         />
       </Card>
 
@@ -359,7 +359,7 @@ const AdminApprovals = () => {
               <Col span={16}>
                 <Title level={4} style={{ margin: '0 0 8px 0', color: '#002e42', fontWeight: 800 }}>Tỉ lệ xử lý đúng hạn</Title>
                 <Text style={{ color: '#595959', fontSize: '13px', display: 'block', marginBottom: '24px' }}>Mục tiêu quý II: Đạt 95% hồ sơ xử lý dưới 48h.</Text>
-                
+
                 <Progress percent={88} showInfo={false} strokeColor="#1e7e34" trailColor="#e2e8f0" size={['100%', 8]} style={{ marginBottom: '8px' }} />
                 <Text style={{ color: '#1e7e34', fontWeight: 'bold', fontSize: '13px' }}>88% Hiện tại</Text>
               </Col>
@@ -389,8 +389,8 @@ const AdminApprovals = () => {
             </Row>
             {/* Background design elements */}
             <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: '120px', backgroundColor: 'rgba(255,255,255,0.05)', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '16px', paddingRight: '20px' }}>
-               <div style={{ height: '24px', backgroundColor: 'rgba(255,255,255,0.1)', width: '100%' }} />
-               <div style={{ height: '24px', backgroundColor: 'rgba(255,255,255,0.1)', width: '80%', alignSelf: 'flex-end' }} />
+              <div style={{ height: '24px', backgroundColor: 'rgba(255,255,255,0.1)', width: '100%' }} />
+              <div style={{ height: '24px', backgroundColor: 'rgba(255,255,255,0.1)', width: '80%', alignSelf: 'flex-end' }} />
             </div>
           </Card>
         </Col>
@@ -411,10 +411,10 @@ const AdminApprovals = () => {
           <Text>{selectedRecord?.code}</Text>
         </div>
         <Text style={{ display: 'block', marginBottom: '8px' }}>Lý do từ chối:</Text>
-        <TextArea 
-          rows={4} 
-          value={rejectReason} 
-          onChange={(e) => setRejectReason(e.target.value)} 
+        <TextArea
+          rows={4}
+          value={rejectReason}
+          onChange={(e) => setRejectReason(e.target.value)}
           placeholder="Nhập lý do chi tiết..."
         />
       </Modal>
@@ -456,21 +456,21 @@ const AdminApprovals = () => {
       </Modal>
 
       {/* Floating Chat Button */}
-      <Button 
-        type="primary" 
-        shape="circle" 
-        icon={<MessageFilled style={{ fontSize: '24px' }} />} 
+      <Button
+        type="primary"
+        shape="circle"
+        icon={<MessageFilled style={{ fontSize: '24px' }} />}
         size="large"
-        style={{ 
-          position: 'fixed', 
-          bottom: '32px', 
-          right: '32px', 
-          width: '64px', 
-          height: '64px', 
+        style={{
+          position: 'fixed',
+          bottom: '32px',
+          right: '32px',
+          width: '64px',
+          height: '64px',
           backgroundColor: '#1e7e34',
           boxShadow: '0 8px 24px rgba(30,126,52,0.4)',
           zIndex: 1000
-        }} 
+        }}
       />
     </div>
   );
