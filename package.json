@@ -1,6 +1,9 @@
 {
   "name": "dat-viet-core",
   "version": "1.0.0",
+  "engines": {
+    "node": "20.x"
+  },
   "description": "Đất Việt Core - Hệ thống Quản lý Đất đai tập trung, minh bạch và hiệu quả",
   "main": "backend/server.js",
   "scripts": {
@@ -36,10 +39,6 @@
     "url": "https://github.com/your-org/dat-viet-core/issues"
   },
   "homepage": "https://github.com/your-org/dat-viet-core#readme",
-  "engines": {
-    "node": ">=18.0.0",
-    "npm": ">=8.0.0"
-  },
   "workspaces": [
     "backend",
     "frontend"
