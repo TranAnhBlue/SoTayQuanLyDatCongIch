@@ -48,20 +48,8 @@ import OfficerLayout from './layouts/OfficerLayout';
 import FinanceLayout from './layouts/FinanceLayout';
 import InspectorLayout from './layouts/InspectorLayout';
 import NotFound from './pages/Error/NotFound';
-import { getToken } from './utils/auth';
-import axios from 'axios';
 import './App.css';
 
-// Add a request interceptor
-api.interceptors.request.use(function (config) {
-    const token = getToken();
-    if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-}, function (error) {
-    return Promise.reject(error);
-});
 
 function App() {
   return (
