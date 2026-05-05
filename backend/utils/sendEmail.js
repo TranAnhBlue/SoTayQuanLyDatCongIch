@@ -7,18 +7,22 @@ const sendEmail = async (options) => {
         console.log(`📧 Service: Gmail`);
         console.log(`📧 User: ${process.env.EMAIL_USER || process.env.SMTP_EMAIL}`);
         
-        // Create transporter with port 465 (SSL) - Often more stable on cloud networks
+        // Create transporter and force IPv4 (Render has issues with IPv6 to Google)
         const transporter = nodemailer.createTransport({
             host: 'smtp.gmail.com',
             port: 465,
-            secure: true, // Use SSL
+            secure: true,
             auth: {
                 user: process.env.EMAIL_USER || process.env.SMTP_EMAIL,
                 pass: (process.env.EMAIL_PASS || process.env.SMTP_PASSWORD || '').replace(/\s/g, ''),
             },
-            connectionTimeout: 10000, // 10 seconds
-            greetingTimeout: 10000,
-            socketTimeout: 10000,
+            // Force IPv4 lookup
+            lookup: (hostname, options, callback) => {
+                require('dns').lookup(hostname, { family: 4 }, callback);
+            },
+            connectionTimeout: 15000,
+            greetingTimeout: 15000,
+            socketTimeout: 15000,
         });
 
         // Define email options
