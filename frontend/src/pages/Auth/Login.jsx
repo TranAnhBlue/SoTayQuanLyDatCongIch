@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Form, Input, Button, Typography, Checkbox, Row, Col, Space, message, Divider } from 'antd';
 import { UserOutlined, LockOutlined, ArrowRightOutlined, PhoneFilled, MailFilled, GoogleOutlined } from '@ant-design/icons';
-import axios from 'axios';
+import api, { API_BASE_URL } from '../../utils/api';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -63,7 +63,7 @@ const Login = () => {
     const onFinish = async (values) => {
         setLoading(true);
         try {
-            const response = await axios.post('http://localhost:5000/api/auth/login', values);
+            const response = await api.post('/auth/login', values);
             const { token, user } = response.data;
 
             // Sử dụng AuthContext để lưu session
@@ -100,7 +100,7 @@ const Login = () => {
         try {
             // Open Google OAuth in popup
             const popup = window.open(
-                'http://localhost:5000/api/auth/google',
+                `${API_BASE_URL}/auth/google`,
                 'google-login',
                 'width=500,height=600,scrollbars=yes,resizable=yes'
             );
@@ -116,7 +116,7 @@ const Login = () => {
                 // Allow messages from backend server and frontend
                 const allowedOrigins = [
                     window.location.origin, // Frontend origin (http://localhost:5173)
-                    'http://localhost:5000', // Backend origin
+                    API_BASE_URL.replace('/api', ''), // Backend origin
                     'http://localhost:3000'  // Alternative frontend port
                 ];
                 

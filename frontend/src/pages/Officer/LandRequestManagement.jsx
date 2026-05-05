@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../../utils/api';
+
 import { 
   Card, Table, Tag, Button, Space, Typography, Row, Col, 
   Modal, Descriptions, message, Input, Select, Badge, Statistic 
@@ -48,7 +49,7 @@ const LandRequestManagement = () => {
       
       const params = filterStatus !== 'all' ? { status: filterStatus } : {};
       
-      const response = await axios.get('http://localhost:5000/api/admin/land-requests', {
+      const response = await api.get('/admin/land-requests', {
         headers: { Authorization: `Bearer ${token}` },
         params
       });
@@ -79,7 +80,7 @@ const LandRequestManagement = () => {
         message.error('Phiên đăng nhập đã hết hạn');
         return;
       }
-      const response = await axios.get(`http://localhost:5000/api/admin/land-requests/${record._id}`, {
+      const response = await api.get('/admin/land-requests/${record._id}', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setSelectedRequest(response.data.data);
@@ -118,7 +119,7 @@ const LandRequestManagement = () => {
         return;
       }
       
-      await axios.put(
+      await api.put(
         `http://localhost:5000/api/admin/land-requests/${selectedRequest._id}/status`,
         reviewForm,
         { headers: { Authorization: `Bearer ${token}` } }

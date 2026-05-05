@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import api from '../../utils/api';
 import { Card, Row, Col, Typography, Button, List, Tag, Statistic, Progress } from 'antd';
 import {
   EnvironmentOutlined,
@@ -11,7 +12,7 @@ import {
   DownloadOutlined,
   SyncOutlined
 } from '@ant-design/icons';
-import axios from 'axios';
+
 import { useNavigate } from 'react-router-dom';
 
 const { Title, Text } = Typography;
@@ -38,12 +39,12 @@ const OfficerDashboard = () => {
       const token = localStorage.getItem('token');
       
       // Fetch recent activities
-      const activitiesRes = await axios.get('http://localhost:5000/api/officer/recent-activities', {
+      const activitiesRes = await api.get('/officer/recent-activities', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       
       // Fetch alerts
-      const alertsRes = await axios.get('http://localhost:5000/api/officer/alerts', {
+      const alertsRes = await api.get('/officer/alerts', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 

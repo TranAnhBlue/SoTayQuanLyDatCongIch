@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import api from '../../utils/api';
 import { 
   Card, 
   Form, 
@@ -18,7 +19,7 @@ import {
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import axios from 'axios';
+
 import dayjs from 'dayjs';
 
 const { Title } = Typography;
@@ -60,7 +61,7 @@ const CreateLandRequestSimple = () => {
 
       console.log('Request data:', requestData);
 
-      const response = await axios.post('http://localhost:5000/api/renter/land-requests', requestData);
+      const response = await api.post('/renter/land-requests', requestData);
       
       if (response.data.success) {
         message.success('Gửi đơn xin thuê đất thành công!');

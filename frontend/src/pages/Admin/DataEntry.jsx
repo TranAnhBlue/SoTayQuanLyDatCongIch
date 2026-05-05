@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import api from '../../utils/api';
 import { 
   Card, 
   Tabs, 
@@ -28,7 +29,7 @@ import {
   EnvironmentOutlined,
   UserOutlined
 } from '@ant-design/icons';
-import axios from 'axios';
+
 import moment from 'moment';
 
 const { Title, Text } = Typography;
@@ -61,7 +62,7 @@ const DataEntry = () => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.post('http://localhost:5000/api/admin/land-parcels', values, {
+      const response = await api.post('/admin/land-parcels', values, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -83,7 +84,7 @@ const DataEntry = () => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.post('http://localhost:5000/api/admin/legal-documents', values, {
+      const response = await api.post('/admin/legal-documents', values, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -113,7 +114,7 @@ const DataEntry = () => {
         currentDebt: values.annualPrice * values.area * values.term // Tổng nợ ban đầu
       };
 
-      const response = await axios.post('http://localhost:5000/api/admin/contracts', contractData, {
+      const response = await api.post('/admin/contracts', contractData, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -135,7 +136,7 @@ const DataEntry = () => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.post('http://localhost:5000/api/admin/users', values, {
+      const response = await api.post('/admin/users', values, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -160,7 +161,7 @@ const DataEntry = () => {
     formData.append('type', type);
 
     try {
-      const response = await axios.post('http://localhost:5000/api/admin/import-excel', formData, {
+      const response = await api.post('/admin/import-excel', formData, {
         headers: { 
           'Content-Type': 'multipart/form-data',
           'Authorization': `Bearer ${token}`

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import api from '../../utils/api';
 import { 
   Card, 
   Timeline, 
@@ -30,7 +31,7 @@ import {
   ClockCircleOutlined,
   ExclamationCircleOutlined
 } from '@ant-design/icons';
-import axios from 'axios';
+
 import moment from 'moment';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -54,7 +55,7 @@ const ContractHistory = () => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:5000/api/renter/contracts', {
+      const response = await api.get('/renter/contracts', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -82,7 +83,7 @@ const ContractHistory = () => {
     // Fetch transactions for this contract
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get(`http://localhost:5000/api/renter/contract/${contract._id}`, {
+      const response = await api.get('/renter/contract/${contract._id}', {
         headers: {
           'Authorization': `Bearer ${token}`
         }

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../../utils/api';
+
 import { Row, Col, Typography, Card, Tag, Button, Progress, List, Space, Modal, InputNumber, message } from 'antd';
 import { useAuth } from '../../contexts/AuthContext';
 import {
@@ -27,7 +28,7 @@ const ContractDetail = () => {
   const fetchData = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:5000/api/renter/contract', {
+      const response = await api.get('/renter/contract', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -56,7 +57,7 @@ const ContractDetail = () => {
     setPaying(true);
     try {
       const token = localStorage.getItem('token');
-      await axios.post('http://localhost:5000/api/renter/payment', {
+      await api.post('/renter/payment', {
         amount: payAmount,
         paymentMethod: 'Chuyển khoản'
       }, {

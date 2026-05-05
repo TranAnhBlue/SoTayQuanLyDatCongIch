@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../../utils/api';
 import { Row, Col, Typography, Card, Input, Select, Upload, Button, List, Tag, Space, message } from 'antd';
 import { 
   SafetyCertificateOutlined, 
@@ -23,7 +23,7 @@ const Feedback = () => {
   useEffect(() => {
     const fetchFeedbacks = async () => {
       try {
-        const res = await axios.get('http://localhost:5000/api/renter/feedback');
+        const res = await api.get('/renter/feedback');
         if (res.data && res.data.feedbacks) {
            setFeedbacks(res.data.feedbacks);
         }
@@ -41,7 +41,7 @@ const Feedback = () => {
     }
     setIsSubmitting(true);
     try {
-      await axios.post('http://localhost:5000/api/renter/feedback', {
+      await api.post('/renter/feedback', {
          title: formData.title,
          type: formData.topic,
          content: formData.description,
@@ -49,7 +49,7 @@ const Feedback = () => {
       });
       message.success('Gửi phản hồi thành công! Chúng tôi sẽ phản hồi trong 2-3 ngày làm việc.');
       // reload
-      const res = await axios.get('http://localhost:5000/api/renter/feedback');
+      const res = await api.get('/renter/feedback');
       if (res.data && res.data.feedbacks) {
          setFeedbacks(res.data.feedbacks);
       }

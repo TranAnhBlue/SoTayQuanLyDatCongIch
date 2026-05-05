@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import api from '../../utils/api';
 import { Form, Input, Button, Typography, Row, Col, Checkbox, message } from 'antd';
 import { 
     UserOutlined, 
@@ -12,7 +13,6 @@ import {
     DashboardOutlined,
     CheckCircleFilled
 } from '@ant-design/icons';
-import axios from 'axios';
 import { useNavigate, Link } from 'react-router-dom';
 
 const { Title, Text } = Typography;
@@ -38,7 +38,7 @@ const Register = () => {
                 password: values.password,
                 role: 'renter' 
             };
-            const response = await axios.post('http://localhost:5000/api/auth/register', payload);
+            const response = await api.post('/auth/register', payload);
             message.success('Đăng ký tài khoản thành công!');
             navigate('/login');
         } catch (error) {

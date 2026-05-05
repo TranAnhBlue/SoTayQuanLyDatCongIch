@@ -12,7 +12,8 @@ import {
     FileTextOutlined,
     FileOutlined
 } from '@ant-design/icons';
-import axios from 'axios';
+
+import api, { API_BASE_URL } from '../../utils/api';
 
 const { Dragger } = Upload;
 const { Title, Text } = Typography;
@@ -34,7 +35,7 @@ const FileUpload = ({
 
     // Xác định endpoint dựa trên type
     const getUploadEndpoint = () => {
-        const baseUrl = 'http://localhost:5000/api';
+        const baseUrl = ''+API_BASE_URL+'';
         switch (type) {
             case 'avatar':
                 return `${baseUrl}/auth/upload-avatar`;
@@ -92,7 +93,7 @@ const FileUpload = ({
                 throw new Error('Vui lòng đăng nhập để upload file');
             }
 
-            const response = await axios.post(getUploadEndpoint(), formData, {
+            const response = await api.post(getUploadEndpoint(), formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
                     'Authorization': `Bearer ${token}`
@@ -139,7 +140,7 @@ const FileUpload = ({
                 throw new Error('Vui lòng đăng nhập để upload file');
             }
 
-            const response = await axios.post('http://localhost:5000/api/files/upload-base64', {
+            const response = await api.post('/files/upload-base64', {
                 base64Data,
                 fileName,
                 folder: `datviet/${folder}`
@@ -172,7 +173,7 @@ const FileUpload = ({
     const handleDelete = async (publicId) => {
         try {
             const token = localStorage.getItem('token');
-            const response = await axios.delete(`http://localhost:5000/api/files/${publicId}`, {
+            const response = await api.delete('/files/${publicId}', {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }

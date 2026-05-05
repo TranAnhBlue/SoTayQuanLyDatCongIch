@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import api from '../../utils/api';
 import { 
   Card, 
   Table, 
@@ -26,7 +27,7 @@ import {
   StopOutlined
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+
 import moment from 'moment';
 
 const { Title, Text } = Typography;
@@ -42,7 +43,7 @@ const LandRequests = () => {
   const fetchRequests = async () => {
     setLoading(true);
     try {
-      const response = await axios.get('http://localhost:5000/api/renter/land-requests');
+      const response = await api.get('/renter/land-requests');
       if (response.data.success) {
         setRequests(response.data.requests);
       }
@@ -61,7 +62,7 @@ const LandRequests = () => {
   // Handle view details
   const handleViewDetails = async (record) => {
     try {
-      const response = await axios.get(`http://localhost:5000/api/renter/land-requests/${record._id}`);
+      const response = await api.get('/renter/land-requests/${record._id}');
       if (response.data.success) {
         setSelectedRequest(response.data.request);
         setDetailModalVisible(true);
@@ -96,7 +97,7 @@ const LandRequests = () => {
       cancelText: 'Hủy',
       onOk: async () => {
         try {
-          const response = await axios.delete(`http://localhost:5000/api/renter/land-requests/${record._id}`);
+          const response = await api.delete('/renter/land-requests/${record._id}');
           if (response.data.success) {
             message.success('Đã xóa đơn xin thuê đất thành công');
             fetchRequests(); // Reload the list

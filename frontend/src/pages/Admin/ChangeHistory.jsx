@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import api from '../../utils/api';
 import { 
   Table, 
   Card, 
@@ -29,7 +30,7 @@ import {
   ExportOutlined,
   FilterOutlined
 } from '@ant-design/icons';
-import axios from 'axios';
+
 import moment from 'moment';
 
 const { Title, Text } = Typography;
@@ -175,7 +176,7 @@ const ChangeHistory = () => {
         ...filterParams
       };
       
-      const response = await axios.get('http://localhost:5000/api/admin/change-history', { params });
+      const response = await api.get('/admin/change-history', { params });
       setChanges(response.data.data);
       setPagination({
         current: response.data.pagination.current,

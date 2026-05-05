@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import api from '../../utils/api';
 import { Card, Row, Col, Typography, Button, Table, Tag, Select, Space, Divider } from 'antd';
 import {
   FileTextOutlined,
@@ -10,7 +11,7 @@ import {
   FilePdfOutlined,
   SendOutlined
 } from '@ant-design/icons';
-import axios from 'axios';
+
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -57,7 +58,7 @@ const FinancialReport = () => {
 
         console.log('🚀 Fetching financial reports...');
         
-        const response = await axios.get('http://localhost:5000/api/finance/reports', {
+        const response = await api.get('/finance/reports', {
           params: {
             period: selectedPeriod,
             page: currentPage,

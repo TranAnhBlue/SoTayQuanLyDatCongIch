@@ -1,3 +1,4 @@
+import api from '../../utils/api';
 import { useState } from 'react';
 import { 
   Row, 
@@ -30,7 +31,7 @@ import {
 } from '@ant-design/icons';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+
 
 const { Title, Text } = Typography;
 
@@ -124,7 +125,7 @@ const ProfileSettings = () => {
       
       console.log('Uploading avatar:', file.name, file.size, 'bytes');
       
-      const response = await axios.post('http://localhost:5000/api/auth/upload-avatar', formData, {
+      const response = await api.post('/auth/upload-avatar', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
           'Authorization': `Bearer ${token}`
@@ -199,7 +200,7 @@ const ProfileSettings = () => {
         throw new Error('Vui lòng đăng nhập lại');
       }
       
-      const response = await axios.put('http://localhost:5000/api/auth/profile', values, {
+      const response = await api.put('/auth/profile', values, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -238,7 +239,7 @@ const ProfileSettings = () => {
         throw new Error('Vui lòng đăng nhập lại');
       }
       
-      const response = await axios.put('http://localhost:5000/api/auth/change-password', {
+      const response = await api.put('/auth/change-password', {
         currentPassword: values.currentPassword,
         newPassword: values.newPassword
       }, {

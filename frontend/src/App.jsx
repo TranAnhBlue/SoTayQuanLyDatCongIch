@@ -53,7 +53,7 @@ import axios from 'axios';
 import './App.css';
 
 // Add a request interceptor
-axios.interceptors.request.use(function (config) {
+api.interceptors.request.use(function (config) {
     const token = getToken();
     if (token) {
         config.headers.Authorization = `Bearer ${token}`;

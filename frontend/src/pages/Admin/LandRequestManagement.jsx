@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import api from '../../utils/api';
 import { 
   Table, 
   Card, 
@@ -34,7 +35,7 @@ import {
   ClockCircleOutlined,
   StopOutlined
 } from '@ant-design/icons';
-import axios from 'axios';
+
 import moment from 'moment';
 
 const { Title, Text } = Typography;
@@ -72,7 +73,7 @@ const LandRequestManagement = () => {
         ...filterParams
       };
       
-      const response = await axios.get('http://localhost:5000/api/admin/land-requests', { params });
+      const response = await api.get('/admin/land-requests', { params });
       setRequests(response.data.data);
       setPagination({
         current: response.data.pagination.current,
@@ -113,7 +114,7 @@ const LandRequestManagement = () => {
   // Handle view details
   const handleViewDetails = async (record) => {
     try {
-      const response = await axios.get(`http://localhost:5000/api/admin/land-requests/${record._id}`);
+      const response = await api.get('/admin/land-requests/${record._id}');
       if (response.data.success) {
         setSelectedRequest(response.data.data);
         setDetailModalVisible(true);
@@ -158,7 +159,7 @@ const LandRequestManagement = () => {
         rejectionReason: values.rejectionReason
       };
 
-      await axios.put(`http://localhost:5000/api/admin/land-requests/${selectedRequest._id}/status`, payload);
+      await api.put('/admin/land-requests/${selectedRequest._id}/status', payload);
       
       message.success(`Cập nhật trạng thái thành công: ${statusMap[actionType]}`);
       setActionModalVisible(false);
@@ -177,7 +178,7 @@ const LandRequestManagement = () => {
         additionalTerms: values.additionalTerms
       };
 
-      await axios.post(`http://localhost:5000/api/admin/land-requests/${selectedRequest._id}/create-contract`, payload);
+      await api.post('/admin/land-requests/${selectedRequest._id}/create-contract', payload);
       
       message.success('Tạo hợp đồng thành công!');
       setContractModalVisible(false);

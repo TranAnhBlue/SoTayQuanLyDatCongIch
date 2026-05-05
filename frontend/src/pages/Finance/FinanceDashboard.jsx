@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import api from '../../utils/api';
 import { Card, Row, Col, Typography, Button, List, Tag, Select, DatePicker } from 'antd';
 import {
   ArrowUpOutlined,
@@ -9,7 +10,7 @@ import {
   FileTextOutlined
 } from '@ant-design/icons';
 import { Line } from '@ant-design/charts';
-import axios from 'axios';
+
 import { useNavigate } from 'react-router-dom';
 
 const { Title, Text } = Typography;
@@ -59,7 +60,7 @@ const FinanceDashboard = () => {
         console.log('- API URL: http://localhost:5000/api/finance/dashboard');
         console.log('- Token (first 20 chars):', token.substring(0, 20) + '...');
         
-        const response = await axios.get('http://localhost:5000/api/finance/dashboard', {
+        const response = await api.get('/finance/dashboard', {
           headers: { 
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'

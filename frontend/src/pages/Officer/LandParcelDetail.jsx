@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import api from '../../utils/api';
 import { Card, Row, Col, Typography, Button, Tag, Timeline, Descriptions, Divider, Modal, Form, Input, Select, DatePicker, message } from 'antd';
 import {
   EnvironmentOutlined,
@@ -10,7 +11,7 @@ import {
   CheckCircleOutlined
 } from '@ant-design/icons';
 import { useParams, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+
 import moment from 'moment';
 
 const { Title, Text } = Typography;
@@ -32,7 +33,7 @@ const LandParcelDetail = () => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get(`http://localhost:5000/api/officer/land-parcels/${id}`, {
+      const response = await api.get('/officer/land-parcels/${id}', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       setParcel(response.data.data);
@@ -47,7 +48,7 @@ const LandParcelDetail = () => {
   const handleAddChange = async (values) => {
     try {
       const token = localStorage.getItem('token');
-      await axios.post(
+      await api.post(
         `http://localhost:5000/api/officer/land-parcels/${id}/changes`,
         values,
         {

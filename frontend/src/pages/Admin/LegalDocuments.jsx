@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import api from '../../utils/api';
 import { 
   Table, 
   Card, 
@@ -32,7 +33,7 @@ import {
   FileWordOutlined,
   FileExcelOutlined
 } from '@ant-design/icons';
-import axios from 'axios';
+
 import moment from 'moment';
 
 const { Title, Text } = Typography;
@@ -110,7 +111,7 @@ const LegalDocuments = () => {
         ...filterParams
       };
       
-      const response = await axios.get('http://localhost:5000/api/admin/legal-documents', { params });
+      const response = await api.get('/admin/legal-documents', { params });
       setDocuments(response.data.data);
       setPagination({
         current: response.data.pagination.current,
@@ -169,10 +170,10 @@ const LegalDocuments = () => {
   const handleSubmit = async (values) => {
     try {
       if (editingDocument) {
-        await axios.put(`http://localhost:5000/api/admin/legal-documents/${editingDocument._id}`, values);
+        await api.put('/admin/legal-documents/${editingDocument._id}', values);
         message.success('Cập nhật văn bản thành công');
       } else {
-        await axios.post('http://localhost:5000/api/admin/legal-documents', values);
+        await api.post('/admin/legal-documents', values);
         message.success('Tạo văn bản thành công');
       }
       setModalVisible(false);
@@ -185,7 +186,7 @@ const LegalDocuments = () => {
   // Handle delete
   const handleDelete = async (id) => {
     try {
-      await axios.delete(`http://localhost:5000/api/admin/legal-documents/${id}`);
+      await api.delete('/admin/legal-documents/${id}');
       message.success('Xóa văn bản thành công');
       fetchDocuments(pagination.current, pagination.pageSize, filters);
     } catch (error) {

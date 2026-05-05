@@ -3,6 +3,9 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
+  "engines": {
+    "node": ">=20.0.0 <23.0.0"
+  },
   "description": "Frontend for Land Management System - Hệ thống Quản lý Đất đai",
   "scripts": {
     "dev": "vite",

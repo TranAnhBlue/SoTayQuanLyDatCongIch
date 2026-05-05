@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../../utils/api';
 import { Row, Col, Typography, Card, Tag, Button, List, Space, message } from 'antd';
 import { MapContainer, TileLayer, Marker, Popup, CircleMarker } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -30,7 +30,7 @@ const AdminHeatmap = () => {
 
   const fetchData = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/admin/heatmap');
+      const response = await api.get('/admin/heatmap');
       setData(response.data);
     } catch (error) {
       console.error('Error fetching admin heatmap data:', error);
@@ -58,7 +58,7 @@ const AdminHeatmap = () => {
     setUpdatingId(code);
     try {
       // Backend hỗ trợ tìm theo code hoặc _id
-      await axios.put(`http://localhost:5000/api/admin/violations/${encodeURIComponent(code)}`, { status, statusColor });
+      await api.put('/admin/violations/${encodeURIComponent(code)}', { status, statusColor });
       message.success(`Cập nhật vi phạm ${code} thành công!`);
       fetchData();
     } catch (e) {

@@ -13,7 +13,7 @@ const ForgotPassword = () => {
     const onFinish = async (values) => {
         setLoading(true);
         try {
-            const response = await axios.post('http://127.0.0.1:5000/api/auth/forgotpassword', values);
+            const response = await api.post('http://127.0.0.1:5000/api/auth/forgotpassword', values);
             message.success(response.data.message);
             localStorage.setItem('resetEmail', values.email);
             navigate('/verify-otp');

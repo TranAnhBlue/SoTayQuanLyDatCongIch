@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../../utils/api';
 import { Row, Col, Typography, Card, Table, Tag, Button, Tabs, Progress, Space, message, Modal, Input, Descriptions } from 'antd';
 import { 
   CheckCircleOutlined,
@@ -26,7 +26,7 @@ const AdminApprovals = () => {
 
   const fetchData = async (tab = activeTab) => {
     try {
-      const response = await axios.get(`http://localhost:5000/api/admin/approvals?tab=${tab}`);
+      const response = await api.get('/admin/approvals?tab=${tab}');
       setData(response.data);
     } catch (error) {
       console.error('Error fetching admin approvals data:', error);
@@ -40,28 +40,26 @@ const AdminApprovals = () => {
       if (record.actionType === 'approve-request') {
         // Approve land request
         const token = localStorage.getItem('token');
-        await axios.put(
-          `http://localhost:5000/api/admin/land-requests/${record.key}/status`,
-          { status: 'Đã phê duyệt', notes: 'Đã phê duyệt bởi Admin' },
-          { headers: { Authorization: `Bearer ${token}` } }
+        await api.put(
+          `/admin/land-requests/${record.key}/status`,
+          { status: 'Đã phê duyệt', notes: 'Đã phê duyệt bởi Admin' }
         );
         message.success(`Đã phê duyệt đơn xin thuê ${record.code}!`);
       } else if (record.actionType === 'create-contract') {
         // Create contract from approved request
         const token = localStorage.getItem('token');
-        await axios.post(
-          `http://localhost:5000/api/admin/land-requests/${record.key}/create-contract`,
+        await api.post(
+          `/admin/land-requests/${record.key}/create-contract`,
           { 
             annualPrice: 50000, // Default price per m2/year
             startDate: record.startDate,
             additionalTerms: ''
-          },
-          { headers: { Authorization: `Bearer ${token}` } }
+          }
         );
         message.success(`Đã tạo hợp đồng từ đơn ${record.code}!`);
       } else {
         // Approve contract
-        await axios.post(`http://localhost:5000/api/admin/approvals/${record.key}/approve`);
+        await api.post('/admin/approvals/${record.key}/approve');
         message.success(`Đã phê duyệt hồ sơ ${record.code}!`);
       }
       fetchData(activeTab);
@@ -85,14 +83,13 @@ const AdminApprovals = () => {
       if (selectedRecord.actionType === 'approve-request') {
         // Reject land request
         const token = localStorage.getItem('token');
-        await axios.put(
-          `http://localhost:5000/api/admin/land-requests/${selectedRecord.key}/status`,
-          { status: 'Từ chối', rejectionReason: rejectReason, notes: 'Đã từ chối bởi Admin' },
-          { headers: { Authorization: `Bearer ${token}` } }
+        await api.put(
+          `/admin/land-requests/${selectedRecord.key}/status`,
+          { status: 'Từ chối', rejectionReason: rejectReason, notes: 'Đã từ chối bởi Admin' }
         );
       } else {
         // Reject contract
-        await axios.post(`http://localhost:5000/api/admin/approvals/${selectedRecord.key}/reject`, { reason: rejectReason });
+        await api.post('/admin/approvals/${selectedRecord.key}/reject', { reason: rejectReason });
       }
       message.warning(`Đã từ chối hồ sơ ${selectedRecord.code}.`);
       setIsRejectModalVisible(false);
@@ -122,7 +119,7 @@ const AdminApprovals = () => {
     }
     try {
       await Promise.all(pending.map(r =>
-        axios.post(`http://localhost:5000/api/admin/approvals/${r.key}/approve`)
+        api.post('/admin/approvals/${r.key}/approve')
       ));
       message.success(`Đã phê duyệt ${pending.length} hồ sơ thành công!`);
       fetchData(activeTab);

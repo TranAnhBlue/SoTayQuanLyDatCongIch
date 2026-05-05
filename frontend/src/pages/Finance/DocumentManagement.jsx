@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import api from '../../utils/api';
 import { Card, Row, Col, Typography, Button, Table, Tag, Select, Input, Space } from 'antd';
 import {
   FileTextOutlined,
@@ -10,7 +11,7 @@ import {
   MoreOutlined
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -60,7 +61,7 @@ const DocumentManagement = () => {
           limit: 10
         });
 
-        const response = await axios.get('http://localhost:5000/api/finance/documents', {
+        const response = await api.get('/finance/documents', {
           params: {
             type: selectedType,
             time: selectedTime,

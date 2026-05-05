@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import api from '../../utils/api';
 import { 
   Card, 
   Form, 
@@ -28,7 +29,7 @@ import {
 } from '@ant-design/icons';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import axios from 'axios';
+
 import dayjs from 'dayjs';
 
 const { Title, Text } = Typography;
@@ -58,7 +59,7 @@ const CreateLandRequest = () => {
     setLoadingData(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get(`http://localhost:5000/api/renter/land-requests/${requestId}`, {
+      const response = await api.get('/renter/land-requests/${requestId}', {
         headers: { Authorization: `Bearer ${token}` }
       });
       
@@ -272,10 +273,10 @@ const CreateLandRequest = () => {
       }
 
       const response = isEditMode 
-        ? await axios.put(`http://localhost:5000/api/renter/land-requests/${id}`, requestData, {
+        ? await api.put('/renter/land-requests/${id}', requestData, {
             headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
           })
-        : await axios.post('http://localhost:5000/api/renter/land-requests', requestData, {
+        : await api.post('/renter/land-requests', requestData, {
             headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
           });
       

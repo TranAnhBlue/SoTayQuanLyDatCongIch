@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../../utils/api';
 import { Row, Col, Typography, Card, Tag, Button, Progress, List, Space, Divider } from 'antd';
 import { 
   ArrowUpOutlined, 
@@ -23,7 +23,7 @@ const AdminDashboard = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await axios.get('http://localhost:5000/api/admin/dashboard');
+        const response = await api.get('/admin/dashboard');
         setDashboardData(response.data);
       } catch (error) {
         console.error('Error fetching admin dashboard data:', error);

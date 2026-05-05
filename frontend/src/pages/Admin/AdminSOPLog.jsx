@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../../utils/api';
 import { Row, Col, Typography, Card, Table, Tag, Button, Pagination, Space, Select } from 'antd';
 import { 
   CheckCircleFilled, 
@@ -21,7 +21,7 @@ const AdminSOPLog = () => {
     try {
       const params = new URLSearchParams({ page, limit: PAGE_SIZE });
       if (status) params.append('status', status);
-      const response = await axios.get(`http://localhost:5000/api/admin/sop-logs?${params}`);
+      const response = await api.get('/admin/sop-logs?${params}');
       setData(response.data);
     } catch (error) {
       console.error('Lỗi khi fetch sop logs:', error);

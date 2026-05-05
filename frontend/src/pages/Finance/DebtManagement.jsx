@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import api from '../../utils/api';
 import { Card, Row, Col, Typography, Button, Table, Tag, Select, Input, Space, Progress } from 'antd';
 import {
   WarningOutlined,
@@ -10,7 +11,7 @@ import {
   MoreOutlined,
   CheckCircleOutlined
 } from '@ant-design/icons';
-import axios from 'axios';
+
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -64,7 +65,7 @@ const DebtManagement = () => {
           page: currentPage
         });
         
-        const response = await axios.get('http://localhost:5000/api/finance/debt', {
+        const response = await api.get('/finance/debt', {
           params: {
             status: selectedStatus,
             zone: selectedZone,

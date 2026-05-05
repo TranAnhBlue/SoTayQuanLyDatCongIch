@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import api from '../../utils/api';
 import { 
   Table, 
   Card, 
@@ -34,7 +35,7 @@ import {
   FileTextOutlined,
   BarChartOutlined
 } from '@ant-design/icons';
-import axios from 'axios';
+
 import moment from 'moment';
 
 const { Title, Text } = Typography;
@@ -72,7 +73,7 @@ const LandParcels = () => {
         ...filterParams
       };
       
-      const response = await axios.get('http://localhost:5000/api/admin/land-parcels', { params });
+      const response = await api.get('/admin/land-parcels', { params });
       setParcels(response.data.data);
       setPagination({
         current: response.data.pagination.current,
@@ -89,7 +90,7 @@ const LandParcels = () => {
 
   const fetchStatistics = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/admin/land-parcels/statistics');
+      const response = await api.get('/admin/land-parcels/statistics');
       setStatistics(response.data.data);
     } catch (error) {
       console.error('Error fetching statistics:', error);
@@ -144,10 +145,10 @@ const LandParcels = () => {
   const handleSubmit = async (values) => {
     try {
       if (editingParcel) {
-        await axios.put(`http://localhost:5000/api/admin/land-parcels/${editingParcel._id}`, values);
+        await api.put('/admin/land-parcels/${editingParcel._id}', values);
         message.success('Cập nhật thửa đất thành công');
       } else {
-        await axios.post('http://localhost:5000/api/admin/land-parcels', values);
+        await api.post('/admin/land-parcels', values);
         message.success('Tạo thửa đất thành công');
       }
       setModalVisible(false);
@@ -161,7 +162,7 @@ const LandParcels = () => {
   // Handle delete
   const handleDelete = async (id) => {
     try {
-      await axios.delete(`http://localhost:5000/api/admin/land-parcels/${id}`);
+      await api.delete('/admin/land-parcels/${id}');
       message.success('Xóa thửa đất thành công');
       fetchParcels(pagination.current, pagination.pageSize, filters);
       fetchStatistics();
@@ -173,7 +174,7 @@ const LandParcels = () => {
   // Handle approval
   const handleApprove = async (id, status) => {
     try {
-      await axios.put(`http://localhost:5000/api/admin/land-parcels/${id}/approve`, {
+      await api.put('/admin/land-parcels/${id}/approve', {
         approvalStatus: status
       });
       message.success(`${status === 'Đã phê duyệt' ? 'Phê duyệt' : 'Cập nhật trạng thái'} thành công`);

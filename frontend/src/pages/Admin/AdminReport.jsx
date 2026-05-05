@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../../utils/api';
 import { Row, Col, Typography, Card, Table, Tag, Button, Space, Modal, Descriptions } from 'antd';
 import { 
   PieChartOutlined, 
@@ -22,7 +22,7 @@ const AdminReport = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await axios.get('http://localhost:5000/api/admin/reports');
+        const response = await api.get('/admin/reports');
         setData(response.data);
       } catch (error) {
         console.error('Error fetching admin reports data:', error);
@@ -54,9 +54,9 @@ const AdminReport = () => {
   const handleUpdateViolation = async (id, status, statusColor) => {
     setUpdatingId(id);
     try {
-      await axios.put(`http://localhost:5000/api/admin/violations/${id}`, { status, statusColor });
+      await api.put('/admin/violations/${id}', { status, statusColor });
       // Refresh
-      const response = await axios.get('http://localhost:5000/api/admin/reports');
+      const response = await api.get('/admin/reports');
       setData(response.data);
     } catch (e) {
       console.error('Failed to update violation', e);

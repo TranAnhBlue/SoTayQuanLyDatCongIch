@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../../utils/api';
 import { Row, Col, Typography, Card, Table, Tag, Button, Pagination, Space, Modal, InputNumber, message } from 'antd';
 import {
   WalletOutlined,
@@ -29,7 +29,7 @@ const Finance = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:5000/api/renter/finance', {
+      const response = await api.get('/renter/finance', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -68,7 +68,7 @@ const Finance = () => {
     setPaying(true);
     try {
       const token = localStorage.getItem('token');
-      await axios.post('http://localhost:5000/api/renter/payment', {
+      await api.post('/renter/payment', {
         amount: payAmount,
         paymentMethod: 'Chuyển khoản'
       }, {

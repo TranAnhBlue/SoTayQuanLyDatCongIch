@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../../utils/api';
+
 import { Table, Tag, Button, Modal, Input, message, Space, Card, Typography, Statistic, Row, Col } from 'antd';
 import {
   CheckCircleOutlined,
@@ -26,7 +27,7 @@ const TransactionApproval = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:5000/api/finance/transactions/pending', {
+      const response = await api.get('/finance/transactions/pending', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -56,7 +57,7 @@ const TransactionApproval = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-      await axios.post(
+      await api.post(
         `http://localhost:5000/api/finance/transactions/${selectedTransaction.key}/approve`,
         { note },
         {
@@ -88,7 +89,7 @@ const TransactionApproval = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-      await axios.post(
+      await api.post(
         `http://localhost:5000/api/finance/transactions/${selectedTransaction.key}/reject`,
         { reason: rejectionReason },
         {
