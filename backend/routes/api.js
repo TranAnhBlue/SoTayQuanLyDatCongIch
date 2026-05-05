@@ -12,7 +12,7 @@ const { protect, authorize } = require('../middleware/auth');
 
 // Import Cloudinary utilities
 const { 
-    uploadAvatar, 
+    uploadAvatar,
     uploadLandImage, 
     uploadDocument, 
     uploadCertificate, 
