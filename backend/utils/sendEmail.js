@@ -1,47 +1,32 @@
-const nodemailer = require("nodemailer");
-const dns = require("dns");
-
-dns.setDefaultResultOrder("ipv4first");
+const axios = require('axios');
 
 const sendEmail = async (options) => {
-  try {
-    console.log("🔧 Attempting to send email...");
-    console.log(`📧 Destination: ${options.email}`);
-    console.log(`📧 Service: Gmail`);
-    console.log(`📧 User: ${process.env.EMAIL_USER || process.env.SMTP_EMAIL}`);
+    try {
+        console.log('🚀 Sending email via Resend API...');
+        
+        const apiKey = process.env.RESEND_API_KEY;
+        if (!apiKey) {
+            throw new Error('RESEND_API_KEY is missing in environment variables');
+        }
 
-    const transporter = nodemailer.createTransport({
-      host: "smtp.gmail.com",
-      port: 587,
-      secure: false,
-      requireTLS: true,
-      family: 4,
-      auth: {
-        user: process.env.EMAIL_USER || process.env.SMTP_EMAIL,
-        pass: (process.env.EMAIL_PASS || process.env.SMTP_PASSWORD || "").replace(/\s/g, ""),
-      },
-      connectionTimeout: 30000,
-      greetingTimeout: 30000,
-      socketTimeout: 30000,
-    });
+        const response = await axios.post('https://api.resend.com/emails', {
+            from: process.env.FROM_NAME ? `${process.env.FROM_NAME} <${process.env.FROM_EMAIL || 'onboarding@resend.dev'}>` : `Hệ thống Quản lý Đất đai <onboarding@resend.dev>`,
+            to: options.email,
+            subject: options.subject,
+            html: options.html,
+        }, {
+            headers: {
+                'Authorization': `Bearer ${apiKey}`,
+                'Content-Type': 'application/json'
+            }
+        });
 
-    const mailOptions = {
-      from: `"${process.env.FROM_NAME || "Hệ thống Quản lý Đất đai"}" <${
-        process.env.EMAIL_USER || process.env.SMTP_EMAIL
-      }>`,
-      to: options.email,
-      subject: options.subject,
-      html: options.html,
-    };
-
-    const info = await transporter.sendMail(mailOptions);
-    console.log("✅ Email sent successfully! Message ID:", info.messageId);
-
-    return info;
-  } catch (error) {
-    console.error("❌ DETAILED EMAIL ERROR:", error);
-    throw error;
-  }
+        console.log('✅ Email sent successfully via Resend!', response.data);
+        return response.data;
+    } catch (error) {
+        console.error('❌ Resend API Error:', error.response?.data || error.message);
+        throw error;
+    }
 };
 
 module.exports = sendEmail;
