@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import api from '../../utils/api';
 import { Upload, Button, message, Progress, Card, Image, Typography, Space, Tag, Divider } from 'antd';
 import { 
     UploadOutlined, 

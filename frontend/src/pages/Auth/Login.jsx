@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import api from '../../utils/api';
 import { Form, Input, Button, Typography, Checkbox, Row, Col, Space, message, Divider } from 'antd';
 import { UserOutlined, LockOutlined, ArrowRightOutlined, PhoneFilled, MailFilled, GoogleOutlined } from '@ant-design/icons';
 import api, { API_BASE_URL } from '../../utils/api';
