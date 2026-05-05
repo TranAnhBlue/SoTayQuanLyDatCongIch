@@ -6,19 +6,19 @@ const sendEmail = async (options) => {
         
         // Create transporter
         const transporter = nodemailer.createTransport({
-            service: 'gmail', // Use Gmail service
+            service: 'gmail',
             auth: {
-                user: process.env.SMTP_EMAIL,
-                pass: process.env.SMTP_PASSWORD,
+                user: process.env.EMAIL_USER || process.env.SMTP_EMAIL,
+                pass: process.env.EMAIL_PASS || process.env.SMTP_PASSWORD,
             },
         });
 
         console.log(`📧 Sending email to: ${options.email}`);
-        console.log(`📧 From: ${process.env.FROM_NAME} <${process.env.SMTP_EMAIL}>`);
+        console.log(`📧 From: ${process.env.FROM_NAME} <${process.env.EMAIL_USER || process.env.SMTP_EMAIL}>`);
 
         // Define email options
         const mailOptions = {
-            from: `${process.env.FROM_NAME} <${process.env.SMTP_EMAIL}>`,
+            from: `"${process.env.FROM_NAME}" <${process.env.EMAIL_USER || process.env.SMTP_EMAIL}>`,
             to: options.email,
             subject: options.subject,
             html: options.html,

@@ -88,8 +88,8 @@ exports.getMe = async (req, res) => {
 // Get token from model, create cookie and send response
 const sendTokenResponse = (user, statusCode, res) => {
     // Create token
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET || 'secret123', {
-        expiresIn: '30d'
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET || 'your_super_secret_key_123', {
+        expiresIn: process.env.JWT_EXPIRE || '30d'
     });
 
     const userData = {
