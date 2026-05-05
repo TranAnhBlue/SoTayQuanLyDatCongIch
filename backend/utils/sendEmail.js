@@ -7,24 +7,32 @@ const sendEmail = async (options) => {
         console.log(`📧 Service: Gmail`);
         console.log(`📧 User: ${process.env.EMAIL_USER || process.env.SMTP_EMAIL}`);
         
-        // Force IPv4 globally for this process
-        const dns = require('dns');
-        if (dns.setDefaultResultOrder) {
-            dns.setDefaultResultOrder('ipv4first');
+        // Manually resolve IPv4 to bypass Render's IPv6 issues
+        const dns = require('dns').promises;
+        let gmailIPv4 = '74.125.204.108'; // Default fallback IP
+        try {
+            const addresses = await dns.resolve4('smtp.gmail.com');
+            if (addresses && addresses.length > 0) {
+                gmailIPv4 = addresses[0];
+            }
+        } catch (dnsErr) {
+            console.log('⚠️ DNS Resolve failed, using fallback IP');
         }
 
-        // Create transporter and force IPv4 (Render has issues with IPv6 to Google)
+        console.log(`📡 Using SMTP IP: ${gmailIPv4}`);
+
+        // Create transporter using numeric IP
         const transporter = nodemailer.createTransport({
-            host: 'smtp.gmail.com',
+            host: gmailIPv4,
             port: 465,
             secure: true,
             auth: {
                 user: process.env.EMAIL_USER || process.env.SMTP_EMAIL,
                 pass: (process.env.EMAIL_PASS || process.env.SMTP_PASSWORD || '').replace(/\s/g, ''),
             },
-            // Force IPv4 lookup explicitly
-            lookup: (hostname, options, callback) => {
-                dns.lookup(hostname, { family: 4 }, callback);
+            tls: {
+                // IMPORTANT: Must specify servername for SSL certificate validation
+                servername: 'smtp.gmail.com'
             },
             connectionTimeout: 20000,
             greetingTimeout: 20000,
