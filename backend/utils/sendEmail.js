@@ -2,7 +2,10 @@ const nodemailer = require('nodemailer');
 
 const sendEmail = async (options) => {
     try {
-        console.log('🔧 Configuring email transporter...');
+        console.log('🔧 Attempting to send email...');
+        console.log(`📧 Destination: ${options.email}`);
+        console.log(`📧 Service: Gmail`);
+        console.log(`📧 User: ${process.env.EMAIL_USER || process.env.SMTP_EMAIL}`);
         
         // Create transporter
         const transporter = nodemailer.createTransport({
@@ -13,12 +16,9 @@ const sendEmail = async (options) => {
             },
         });
 
-        console.log(`📧 Sending email to: ${options.email}`);
-        console.log(`📧 From: ${process.env.FROM_NAME} <${process.env.EMAIL_USER || process.env.SMTP_EMAIL}>`);
-
         // Define email options
         const mailOptions = {
-            from: `"${process.env.FROM_NAME}" <${process.env.EMAIL_USER || process.env.SMTP_EMAIL}>`,
+            from: `"${process.env.FROM_NAME || 'Hệ thống Quản lý Đất đai'}" <${process.env.EMAIL_USER || process.env.SMTP_EMAIL}>`,
             to: options.email,
             subject: options.subject,
             html: options.html,
@@ -30,7 +30,7 @@ const sendEmail = async (options) => {
         
         return info;
     } catch (error) {
-        console.error('❌ Email sending error:', error.message);
+        console.error('❌ DETAILED EMAIL ERROR:', error);
         throw error;
     }
 };
