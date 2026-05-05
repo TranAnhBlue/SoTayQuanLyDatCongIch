@@ -133,35 +133,28 @@ exports.forgotPassword = async (req, res) => {
 
         await user.save({ validateBeforeSave: false });
 
-        // Send OTP via email
-        try {
-            const emailHtml = getOTPEmailTemplate(otp, user.name);
-            
-            await sendEmail({
-                email: user.email,
-                subject: 'Mã xác thực đặt lại mật khẩu - Đất Việt Core',
-                html: emailHtml
-            });
-
+        // Send OTP via email (Asynchronous fallback)
+        const emailHtml = getOTPEmailTemplate(otp, user.name);
+        
+        // Don't 'await' here so we can respond to user immediately
+        sendEmail({
+            email: user.email,
+            subject: 'Mã xác thực đặt lại mật khẩu - Đất Việt Core',
+            html: emailHtml
+        }).then(() => {
             console.log(`✅ OTP email sent successfully to ${email}`);
-            
-            res.status(200).json({ 
-                success: true, 
-                message: 'Mã OTP đã được gửi đến email của bạn. Vui lòng kiểm tra hộp thư đến hoặc thư rác.' 
-            });
-        } catch (emailError) {
+        }).catch((emailError) => {
             console.error('❌ Email sending failed:', emailError.message);
-            
-            // Fallback to console log if email fails
             console.log('==========================================');
             console.log(`📧 FALLBACK - OTP for ${email}: ${otp}`);
             console.log('==========================================');
-            
-            res.status(200).json({ 
-                success: true, 
-                message: `Có lỗi gửi email, nhưng mã OTP đã được tạo: ${otp}. Vui lòng sử dụng mã này để tiếp tục.` 
-            });
-        }
+        });
+
+        // Respond to user immediately
+        res.status(200).json({ 
+            success: true, 
+            message: 'Mã OTP đang được gửi đến email của bạn. Vui lòng kiểm tra hộp thư trong giây lát.' 
+        });
     } catch (error) {
         console.error('[Auth forgotPassword]', error);
         res.status(500).json({ message: 'Lỗi máy chủ' });
