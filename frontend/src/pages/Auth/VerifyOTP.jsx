@@ -100,7 +100,7 @@ const VerifyOTP = () => {
 
         setLoading(true);
         try {
-            const response = await api.post('http://127.0.0.1:5000/api/auth/verifyotp', {
+            const response = await api.post('/auth/verifyotp', {
                 email,
                 otp: otpString
             });
@@ -117,7 +117,7 @@ const VerifyOTP = () => {
 
     const handleResend = async () => {
         try {
-            await api.post('http://127.0.0.1:5000/api/auth/forgotpassword', { email });
+            await api.post('/auth/forgotpassword', { email });
             message.success('Mã mới đã được gửi đến email của bạn');
             setTimer(119);
             setOtp(['', '', '', '', '', '']);

@@ -20,7 +20,7 @@ const ResetPassword = () => {
 
         setLoading(true);
         try {
-            const response = await api.post('http://127.0.0.1:5000/api/auth/resetpassword', {
+            const response = await api.post('/auth/resetpassword', {
                 email,
                 otp,
                 password: values.password

@@ -19,8 +19,9 @@ const allowedOrigins = [
   'http://127.0.0.1:5173',
   'http://127.0.0.1:3000',
   process.env.CLIENT_URL,
-  'https://sotayquanlydatcongich.vercel.app', // Adding a likely production URL
-].filter(Boolean);
+  'https://sotayquanlydatcongich.vercel.app',
+  'https://sotayquanlydatcong.vercel.app',
+].filter(Boolean).map(url => url.replace(/\/$/, "")); // Loại bỏ dấu / ở cuối nếu có
 
 app.use(cors({
   origin: function (origin, callback) {
