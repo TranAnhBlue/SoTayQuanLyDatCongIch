@@ -7,6 +7,12 @@ const sendEmail = async (options) => {
         console.log(`📧 Service: Gmail`);
         console.log(`📧 User: ${process.env.EMAIL_USER || process.env.SMTP_EMAIL}`);
         
+        // Force IPv4 globally for this process
+        const dns = require('dns');
+        if (dns.setDefaultResultOrder) {
+            dns.setDefaultResultOrder('ipv4first');
+        }
+
         // Create transporter and force IPv4 (Render has issues with IPv6 to Google)
         const transporter = nodemailer.createTransport({
             host: 'smtp.gmail.com',
@@ -16,13 +22,13 @@ const sendEmail = async (options) => {
                 user: process.env.EMAIL_USER || process.env.SMTP_EMAIL,
                 pass: (process.env.EMAIL_PASS || process.env.SMTP_PASSWORD || '').replace(/\s/g, ''),
             },
-            // Force IPv4 lookup
+            // Force IPv4 lookup explicitly
             lookup: (hostname, options, callback) => {
-                require('dns').lookup(hostname, { family: 4 }, callback);
+                dns.lookup(hostname, { family: 4 }, callback);
             },
-            connectionTimeout: 15000,
-            greetingTimeout: 15000,
-            socketTimeout: 15000,
+            connectionTimeout: 20000,
+            greetingTimeout: 20000,
+            socketTimeout: 20000,
         });
 
         // Define email options
