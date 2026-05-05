@@ -7,13 +7,18 @@ const sendEmail = async (options) => {
         console.log(`📧 Service: Gmail`);
         console.log(`📧 User: ${process.env.EMAIL_USER || process.env.SMTP_EMAIL}`);
         
-        // Create transporter
+        // Create transporter with explicit SMTP config (Avoid IPv6 issues on Render)
         const transporter = nodemailer.createTransport({
-            service: 'gmail',
+            host: 'smtp.gmail.com',
+            port: 587,
+            secure: false, // true for 465, false for 587
             auth: {
                 user: process.env.EMAIL_USER || process.env.SMTP_EMAIL,
-                pass: process.env.EMAIL_PASS || process.env.SMTP_PASSWORD,
+                pass: (process.env.EMAIL_PASS || process.env.SMTP_PASSWORD || '').replace(/\s/g, ''),
             },
+            tls: {
+                rejectUnauthorized: false
+            }
         });
 
         // Define email options
