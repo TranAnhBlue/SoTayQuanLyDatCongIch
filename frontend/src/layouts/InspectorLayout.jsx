@@ -93,7 +93,7 @@ const InspectorLayout = () => {
             <SettingFilled style={{ fontSize: '18px', color: 'rgba(255,255,255,0.85)', cursor: 'pointer' }} />
           </Space>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', borderLeft: '1px solid rgba(255,255,255,0.2)', paddingLeft: '24px', height: '32px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', borderLeft: '1px solid rgba(255,255,255,0.2)', paddingLeft: '24px' }}>
             <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
               <div style={{ fontSize: '13px', fontWeight: 'bold', color: 'white', lineHeight: '1.2' }}>
                 {user?.name || 'Thanh tra viên'}

@@ -59,6 +59,13 @@ body {
 }
 
 /* Fix Avatar squashing */
+.ant-avatar {
+  flex-shrink: 0 !important;
+  aspect-ratio: 1 / 1 !important;
+}
+
 .ant-avatar img {
   object-fit: cover !important;
+  width: 100% !important;
+  height: 100% !important;
 }

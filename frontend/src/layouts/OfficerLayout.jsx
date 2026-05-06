@@ -92,7 +92,7 @@ const OfficerLayout = () => {
             <SettingFilled style={{ fontSize: '18px', color: 'rgba(255,255,255,0.85)', cursor: 'pointer' }} />
           </Space>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', borderLeft: '1px solid rgba(255,255,255,0.2)', paddingLeft: '24px', height: '32px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', borderLeft: '1px solid rgba(255,255,255,0.2)', paddingLeft: '24px' }}>
             <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
               <div style={{ fontSize: '13px', fontWeight: 'bold', color: 'white', lineHeight: '1.2' }}>{user?.name || 'Lê Văn Quân'}</div>
               <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.7)', lineHeight: '1.2', marginTop: '2px' }}>CÁN BỘ ĐỊA CHÍNH</div>
