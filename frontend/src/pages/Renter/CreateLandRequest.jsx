@@ -59,7 +59,7 @@ const CreateLandRequest = () => {
     setLoadingData(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await api.get('/renter/land-requests/${requestId}', {
+      const response = await api.get(`/renter/land-requests/${requestId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
@@ -273,7 +273,7 @@ const CreateLandRequest = () => {
       }
 
       const response = isEditMode 
-        ? await api.put('/renter/land-requests/${id}', requestData, {
+        ? await api.put(`/renter/land-requests/${id}`, requestData, {
             headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
           })
         : await api.post('/renter/land-requests', requestData, {

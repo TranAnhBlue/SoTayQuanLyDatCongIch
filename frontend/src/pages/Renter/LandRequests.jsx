@@ -13,7 +13,9 @@ import {
   Modal,
   Descriptions,
   Timeline,
-  message
+  message,
+  Input,
+  Select
 } from 'antd';
 import { 
   PlusOutlined, 
@@ -25,6 +27,9 @@ import {
   CheckCircleOutlined,
   ExclamationCircleOutlined,
   StopOutlined
+  ArrowRightOutlined,
+  SearchOutlined,
+  FilterOutlined
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 
@@ -37,6 +42,8 @@ const LandRequests = () => {
   const [loading, setLoading] = useState(false);
   const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState(null);
+  const [searchText, setSearchText] = useState('');
+  const [filterStatus, setFilterStatus] = useState('All');
   const navigate = useNavigate();
 
   // Fetch requests
@@ -62,7 +69,7 @@ const LandRequests = () => {
   // Handle view details
   const handleViewDetails = async (record) => {
     try {
-      const response = await api.get('/renter/land-requests/${record._id}');
+      const response = await api.get(`/renter/land-requests/${record._id}`);
       if (response.data.success) {
         setSelectedRequest(response.data.request);
         setDetailModalVisible(true);
@@ -97,7 +104,7 @@ const LandRequests = () => {
       cancelText: 'Hủy',
       onOk: async () => {
         try {
-          const response = await api.delete('/renter/land-requests/${record._id}');
+          const response = await api.delete(`/renter/land-requests/${record._id}`);
           if (response.data.success) {
             message.success('Đã xóa đơn xin thuê đất thành công');
             fetchRequests(); // Reload the list
@@ -123,11 +130,21 @@ const LandRequests = () => {
     return configs[status] || { color: 'default', icon: <ClockCircleOutlined /> };
   };
 
+  // Filtered requests
+  const filteredRequests = React.useMemo(() => {
+    return requests.filter(item => {
+      const matchSearch = (item.requestCode?.toLowerCase().includes(searchText.toLowerCase())) || 
+                          (item.requestedLocation?.toLowerCase().includes(searchText.toLowerCase()));
+      const matchStatus = filterStatus === 'All' || item.status === filterStatus;
+      return matchSearch && matchStatus;
+    });
+  }, [requests, searchText, filterStatus]);
+
   // Statistics
   const stats = {
     total: requests.length,
     pending: requests.filter(r => r.status === 'Chờ xử lý').length,
-    approved: requests.filter(r => r.status === 'Đã phê duyệt').length,
+    approved: requests.filter(r => r.status === 'Đã phê duyệt' || r.status === 'Đã ký hợp đồng').length,
     rejected: requests.filter(r => r.status === 'Từ chối').length
   };
 
@@ -278,23 +295,54 @@ const LandRequests = () => {
         </Col>
       </Row>
 
-      {/* Action Bar */}
-      <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between' }}>
-        <Button 
-          type="primary" 
-          icon={<PlusOutlined />}
-          onClick={() => navigate('/renter/create-land-request')}
-          style={{ backgroundColor: '#1e7e34' }}
-        >
-          Tạo đơn xin thuê đất mới
-        </Button>
-      </div>
+      {/* Action Bar & Filters */}
+      <Card bodyStyle={{ padding: '16px' }} style={{ marginBottom: '16px' }}>
+        <Row gutter={[16, 16]} align="middle">
+          <Col xs={24} md={8}>
+            <Button 
+              type="primary" 
+              icon={<PlusOutlined />}
+              onClick={() => navigate('/renter/create-land-request')}
+              style={{ backgroundColor: '#1e7e34', borderColor: '#1e7e34', height: '40px' }}
+              block
+            >
+              Tạo đơn xin thuê đất mới
+            </Button>
+          </Col>
+          <Col xs={24} md={10}>
+            <Input
+              placeholder="Tìm theo mã đơn hoặc vị trí..."
+              prefix={<SearchOutlined style={{ color: '#bfbfbf' }} />}
+              onChange={e => setSearchText(e.target.value)}
+              value={searchText}
+              allowClear
+              style={{ height: '40px' }}
+            />
+          </Col>
+          <Col xs={24} md={6}>
+            <Select
+              style={{ width: '100%', height: '40px' }}
+              placeholder="Lọc theo trạng thái"
+              defaultValue="All"
+              onChange={value => setFilterStatus(value)}
+              options={[
+                { value: 'All', label: 'Tất cả trạng thái' },
+                { value: 'Chờ xử lý', label: 'Chờ xử lý' },
+                { value: 'Đang xem xét', label: 'Đang xem xét' },
+                { value: 'Đã phê duyệt', label: 'Đã phê duyệt' },
+                { value: 'Từ chối', label: 'Từ chối' },
+                { value: 'Yêu cầu bổ sung', label: 'Cần bổ sung' },
+                { value: 'Đã ký hợp đồng', label: 'Đã ký hợp đồng' }
+              ]}
+            />
+          </Col>
+        </Row>
+      </Card>
 
-      {/* Table */}
-      <Card>
+      <Card bodyStyle={{ padding: 0 }}>
         <Table
           columns={columns}
-          dataSource={requests}
+          dataSource={filteredRequests}
           rowKey="_id"
           loading={loading}
           pagination={{
