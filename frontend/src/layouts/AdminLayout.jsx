@@ -108,7 +108,7 @@ const AdminLayout = () => {
             <Avatar 
               key={userKey}
               src={user?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.name || 'Admin'}`} 
-              size={32} 
+              size={40} 
               style={{ cursor: 'pointer' }}
               onClick={() => navigate('/profile')}
             />

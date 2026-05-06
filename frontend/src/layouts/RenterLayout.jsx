@@ -85,6 +85,7 @@ const RenterLayout = () => {
             key={userKey}
             icon={<UserOutlined />} 
             src={user?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.name || 'User'}`}
+            size={40}
             style={{ backgroundColor: '#ffffff33', cursor: 'pointer' }} 
             onClick={() => navigate('/profile')}
           />

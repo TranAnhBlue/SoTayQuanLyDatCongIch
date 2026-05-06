@@ -57,3 +57,8 @@ body {
 .dark-teal-bg {
   background-color: #002e42; /* Main dark color from header/banners */
 }
+
+/* Fix Avatar squashing */
+.ant-avatar img {
+  object-fit: cover !important;
+}
