@@ -354,7 +354,9 @@ exports.uploadAvatar = async (req, res) => {
 // @access  Public
 exports.googleAuth = (req, res) => {
     // Redirect to Google OAuth
-    const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${process.env.GOOGLE_CLIENT_ID}&redirect_uri=${process.env.GOOGLE_CALLBACK_URL}&scope=profile email&response_type=code`;
+    const client_id = process.env.GOOGLE_CLIENT_ID;
+    const redirect_uri = encodeURIComponent(process.env.GOOGLE_CALLBACK_URL);
+    const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${client_id}&redirect_uri=${redirect_uri}&scope=profile%20email&response_type=code`;
     res.redirect(googleAuthUrl);
 };
 
