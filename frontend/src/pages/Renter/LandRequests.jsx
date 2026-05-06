@@ -26,7 +26,7 @@ import {
   ClockCircleOutlined,
   CheckCircleOutlined,
   ExclamationCircleOutlined,
-  StopOutlined
+  StopOutlined,
   ArrowRightOutlined,
   SearchOutlined,
   FilterOutlined

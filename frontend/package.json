@@ -6,7 +6,7 @@
   "description": "Frontend for Land Management System - Hệ thống Quản lý Đất đai",
   "scripts": {
     "dev": "vite",
-    "build": "../node_modules/.bin/vite build",
+    "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview"
   },
