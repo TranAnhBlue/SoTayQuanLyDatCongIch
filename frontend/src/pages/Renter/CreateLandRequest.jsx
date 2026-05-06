@@ -652,7 +652,7 @@ const CreateLandRequest = () => {
       </Card>
 
       {/* Form Content */}
-      <Card>
+      <Card bodyStyle={{ paddingBottom: '40px' }}>
         <Form
           form={form}
           layout="vertical"
@@ -660,21 +660,42 @@ const CreateLandRequest = () => {
           {renderStepContent()}
         </Form>
 
-        <Divider />
+        <Divider style={{ margin: '32px 0' }} />
 
         {/* Navigation Buttons */}
-        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
             {currentStep > 0 && (
-              <Button onClick={handlePrev}>
+              <Button 
+                onClick={handlePrev}
+                icon={<ArrowLeftOutlined />}
+                size="large"
+                style={{ borderRadius: '6px' }}
+              >
                 Quay lại
               </Button>
             )}
           </div>
           <div>
             {currentStep < steps.length - 1 ? (
-              <Button type="primary" onClick={handleNext}>
+              <Button 
+                type="primary" 
+                onClick={handleNext}
+                size="large"
+                style={{ 
+                  backgroundColor: '#1e7e34', 
+                  borderColor: '#1e7e34',
+                  height: '45px',
+                  padding: '0 32px',
+                  borderRadius: '6px',
+                  fontWeight: 'bold',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}
+              >
                 Tiếp theo
+                <SendOutlined style={{ fontSize: '14px', transform: 'rotate(-45deg)' }} />
               </Button>
             ) : (
               <Button 
@@ -682,7 +703,15 @@ const CreateLandRequest = () => {
                 icon={<SendOutlined />}
                 loading={loading}
                 onClick={handleNext}
-                style={{ backgroundColor: '#1e7e34' }}
+                size="large"
+                style={{ 
+                  backgroundColor: '#002e42', 
+                  borderColor: '#002e42',
+                  height: '45px',
+                  padding: '0 32px',
+                  borderRadius: '6px',
+                  fontWeight: 'bold'
+                }}
               >
                 {isEditMode ? 'Cập nhật đơn xin thuê đất' : 'Gửi đơn xin thuê đất'}
               </Button>
